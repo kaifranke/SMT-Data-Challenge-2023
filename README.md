@@ -8,3 +8,6 @@ The following files are in this repository:
   * taking spatial data and putting into important moments
   * feature engineering with important features such as distance from base, times of plays, location of ball at specific points, and runner information, and if there was a stolen base or not
   * cleaning the data to make it ready to input in the model
+* SBsimple.csv
+  * data that is ready to be input into the model,
+  * has different moments in time for location of the ball, time since last event, etc. 
