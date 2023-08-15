@@ -1,0 +1,130 @@
+---
+title: "SMTData"
+author: "Jackson Balch"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(caret)
+library(mlbench)
+library(npreg)
+library(glmnet)
+set.seed(69)
+```
+
+## Data Load
+```{r DataLoad}
+dat <- read.csv('SBSimple.csv')
+dat <- na.omit(dat)
+sample <- sample(c(T, F), nrow(dat), replace = T, prob = c(0.8, 0.3))
+train <- dat[sample, ]
+train <- train %>%
+  select(popTime, exchange, timeOfThrow, timeToPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z, SB)
+test <- dat[!sample, ]
+true_train_vals <- test$SB
+test <- test %>%
+  select(popTime, exchange, timeOfThrow, timeToPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z)
+dat <- dat %>%
+  group_by(playerAct)
+
+
+```
+
+## Data compulation
+```{r Data comp}
+comp_dat <- dat %>%
+  mutate(game_play_id = paste(dat$game_str, dat$play_id, sep = "_"))
+
+comp_dat$playerAct <- ifelse(comp_dat$playerAct %in% c("C", "P"), comp_dat$playerAct, "F")
+  
+comp_dat$popTime <- ifelse(comp_dat$playerAct == "C", comp_dat$popTime, mean(comp_dat$popTime, na.rm = T))
+
+comp_dat$exchange <- ifelse(comp_dat$playerAct == "C", comp_dat$exchange, mean(comp_dat$exchange, na.rm = T))
+
+comp_dat$timeOfThrow <- ifelse(comp_dat$playerAct == "P", mean(comp_dat$timeOfThrow, na.rm = T), comp_dat$timeOfThrow)
+
+comp_dat$timeToPlate <- ifelse(comp_dat$playerAct == "P", comp_dat$timeToPlate,  mean(comp_dat$timeToPlate, na.rm = T))
+```
+
+## Modeling
+```{r Non-parametric models}
+
+gcv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "GCV")
+
+ocv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "OCV")
+
+gacv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "GACV")
+
+acv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "ACV")
+
+pql_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "PQL")
+
+aic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "AIC")
+
+bic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "BIC")
+
+```
+
+```{r lasso}
+y <- train$SB
+x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+for (i in 1:ncol(x)){
+  x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
+}
+cv_model <- cv.glmnet(x, y, alpha = 1)
+best_lambda <- cv_model$lambda.min
+lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(lasso_model)
+
+```
+
+```{r ridge}
+y = train$SB
+x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+for (i in 1:ncol(x)){
+  x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
+}
+cv_model <- cv.glmnet(x, y, alpha = 0)
+best_lambda <- cv_model$lambda.min
+ridge_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(ridge_model)
+```
+
+```{r makePredicts}
+
+
+train_res <- train
+train_res['ACV'] <- fitted(acv_np_mod)
+train_res['AIC'] <- fitted(aic_np_mod)
+train_res['BIC'] <- fitted(bic_np_mod)
+train_res['GACV'] <- fitted(gacv_np_mod)
+train_res['GCV'] <- fitted(gcv_np_mod)
+train_res['LASSO'] <- predict(lasso_model, x)
+train_res['OCV'] <- fitted(ocv_np_mod)
+train_res['PQL'] <- fitted(pql_np_mod)
+train_res['RIDGE'] <- predict(ridge_model, x)
+summary(acv_np_mod)
+summary(aic_np_mod)
+summary(bic_np_mod)
+summary(gacv_np_mod)
+summary(gcv_np_mod)
+summary(ocv_np_mod)
+summary(pql_np_mod)
+predictions <- test
+predictions["TRUTH"] <- true_train_vals
+predictions["ACV"] <- predict(acv_np_mod, test, type="response")
+predictions["AIC"] <- predict(aic_np_mod, test, type="response")
+predictions["BIC"] <- predict(bic_np_mod, test, type="response")
+predictions["GACV"] <- predict(gacv_np_mod, test, type="response")
+predictions["GCV"] <- predict(gcv_np_mod, test, type="response")
+predictions["OCV"] <- predict(ocv_np_mod, test, type="response")
+predictions["PQL"] <- predict(pql_np_mod, test, type="response")
+lm_test <- as.matrix(test)
+predictions["LASSO"] <- predict(lasso_model, lm_test, type="response")
+predictions["RIDGE"] <- predict(ridge_model, lm_test, type="response")
+predictions
+
+```
