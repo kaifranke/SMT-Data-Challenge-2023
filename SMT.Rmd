@@ -12,6 +12,7 @@ library(caret)
 library(mlbench)
 library(npreg)
 library(glmnet)
+library(MLmetrics)
 set.seed(69)
 ```
 
@@ -70,7 +71,9 @@ bic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff 
 
 ```{r lasso}
 y <- train$SB
+
 x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+x <- scale(x)
 for (i in 1:ncol(x)){
   x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
 }
@@ -84,6 +87,7 @@ coef(lasso_model)
 ```{r ridge}
 y = train$SB
 x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+x <- scale(x)
 for (i in 1:ncol(x)){
   x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
 }
