@@ -71,30 +71,51 @@ bic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff 
 
 ```{r lasso}
 y <- train$SB
-
-x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+x <- data.matrix(train[c('exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
 x <- scale(x)
-for (i in 1:ncol(x)){
-  x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
+ 
+lambdas <- c()
+for (p in 1:100){
+  cv <- cv.glmnet(x, y, alpha=1)  
+  lambdas <- append(lambdas, cv$lambda)
 }
-cv_model <- cv.glmnet(x, y, alpha = 1)
-best_lambda <- cv_model$lambda.min
-lasso_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-coef(lasso_model)
-
+lambda.min <- min(lambdas)
+lasso<-train(y= y,
+                 x = x,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 1, lambda = lambda.min)
+               )
+coef(lasso$finalModel, lasso$bestTune$lambda)
 ```
 
+```{r step}
+step_data <- as.data.frame(x)
+rownames(step_data) <- NULL
+step_data$y <- y
+simple <- glm(y ~ exchange + timeOfThrow + timeToPlate + leadoff, data = step_data, family = "binomial")
+complicated <- glm(y ~., data = step_data, family = "binomial")
+step(simple, scope = list(lower=simple, upper=complicated), direction = "both", k=2)
+```
+
+
 ```{r ridge}
-y = train$SB
-x <- data.matrix(train[, c('popTime', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
+y <- train$SB
+x <- data.matrix(train[c('exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
 x <- scale(x)
-for (i in 1:ncol(x)){
-  x[,i][is.na(x[,i])] <- mean(x[,i], na.rm = T)
+ 
+lambdas <- c()
+for (p in 1:100){
+  cv <- cv.glmnet(x, y, alpha=1)  
+  lambdas <- append(lambdas, cv$lambda)
 }
-cv_model <- cv.glmnet(x, y, alpha = 0)
-best_lambda <- cv_model$lambda.min
-ridge_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
-coef(ridge_model)
+lambda.min <- min(lambdas)
+ridge<-train(y= y,
+                 x = x,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 0, lambda = lambda.min)
+               )
+coef(ridge$finalModel, ridge$bestTune$lambda)
+```
 ```
 
 ```{r makePredicts}
