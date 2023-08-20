@@ -20,136 +20,231 @@ set.seed(69)
 ```{r DataLoad}
 dat <- read.csv('SBSimple.csv')
 dat <- na.omit(dat)
-sample <- sample(c(T, F), nrow(dat), replace = T, prob = c(0.8, 0.3))
-train <- dat[sample, ]
-train <- train %>%
-  select(popTime, exchange, timeOfThrow, timeToPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z, SB)
-test <- dat[!sample, ]
-true_train_vals <- test$SB
-test <- test %>%
-  select(popTime, exchange, timeOfThrow, timeToPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z)
-dat <- dat %>%
-  group_by(playerAct)
-
-
 ```
 
-## Data compulation
-```{r Data comp}
-comp_dat <- dat %>%
-  mutate(game_play_id = paste(dat$game_str, dat$play_id, sep = "_"))
+```{r dataManip}
+playered_data <- dat %>%
+  select(-c(X, timediff, play_id, game_str, timestamp, popTime))
 
-comp_dat$playerAct <- ifelse(comp_dat$playerAct %in% c("C", "P"), comp_dat$playerAct, "F")
-  
-comp_dat$popTime <- ifelse(comp_dat$playerAct == "C", comp_dat$popTime, mean(comp_dat$popTime, na.rm = T))
+playered_data$SB <- as.factor(playered_data$SB)
+levels(playered_data$SB) <- c("caught", "success")
 
-comp_dat$exchange <- ifelse(comp_dat$playerAct == "C", comp_dat$exchange, mean(comp_dat$exchange, na.rm = T))
+playered_data$playerAct <- ifelse(playered_data$playerAct %in% c("C", "P"), playered_data$playerAct, "INF")
 
-comp_dat$timeOfThrow <- ifelse(comp_dat$playerAct == "P", mean(comp_dat$timeOfThrow, na.rm = T), comp_dat$timeOfThrow)
+pitcher_data <- playered_data %>%
+  filter(playerAct == "P") %>% 
+  filter(event == "pitch") %>%
+  select(-c(playerAct, event))
+pitcher_sample <- createDataPartition(pitcher_data$SB, times=1, p=.8, list=FALSE)
+pitcher_train_data <- pitcher_data[pitcher_sample, ]
+pitcher_test_data <- pitcher_data[-pitcher_sample, ]
 
-comp_dat$timeToPlate <- ifelse(comp_dat$playerAct == "P", comp_dat$timeToPlate,  mean(comp_dat$timeToPlate, na.rm = T))
+on_catch_data <- playered_data %>%
+  filter(playerAct == "C") %>%
+  filter(event == "ball acquired") %>%
+  select(-c(playerAct, event))
+on_catch_sample <- createDataPartition(on_catch_data$SB, times=1, p=.8, list=FALSE)
+on_catch_train_data <- on_catch_data[on_catch_sample, ]
+on_catch_test_data <- on_catch_data[-on_catch_sample, ]
+
+catcher_throw_data <- playered_data %>%
+  filter(playerAct == "C") %>%
+  filter(event == "throw (ball-in-play)") %>%
+  select(-c(playerAct, event))
+catcher_throw_sample <- createDataPartition(catcher_throw_data$SB, times=1, p=.8, list=FALSE)
+catcher_throw_train_data <- catcher_throw_data[catcher_throw_sample, ]
+catcher_throw_test_data <- catcher_throw_data[-catcher_throw_sample, ]
+
+fielder_data <- playered_data %>%
+  filter(playerAct == "INF") %>%
+  filter(event == "ball acquired") %>%
+  select(-c(playerAct, event))
+fielder_sample <- createDataPartition(fielder_data$SB, times=1, p=.8, list=FALSE)
+fielder_train_data <- fielder_data[fielder_sample, ]
+fielder_test_data <- fielder_data[-fielder_sample, ]
 ```
 
-## Modeling
-```{r Non-parametric models}
-
-gcv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "GCV")
-
-ocv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "OCV")
-
-gacv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "GACV")
-
-acv_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "ACV")
-
-pql_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "PQL")
-
-aic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "AIC")
-
-bic_np_mod <- gsm(SB ~ popTime + exchange + timeOfThrow + timeToPlate + leadoff + rDist2B + maxSpeed + ball_x + ball_y + ball_z, data = train, family = binomial, method = "BIC")
-
-```
-
-```{r lasso}
-y <- train$SB
-x <- data.matrix(train[c('exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
-x <- scale(x)
- 
-lambdas <- c()
-for (p in 1:100){
-  cv <- cv.glmnet(x, y, alpha=1)  
-  lambdas <- append(lambdas, cv$lambda)
-}
-lambda.min <- min(lambdas)
-lasso<-train(y= y,
-                 x = x,
+```{r evented_lassos}
+myControl <- trainControl(
+                           method = "cv", number = 10,
+                           summaryFunction = twoClassSummary,
+                           classProbs = TRUE
+                          )
+lasso_tune_grid= expand.grid(alpha = 1, lambda = seq(0.0001, 1, length = 100))
+pitcher_lasso<-train(SB ~ ., data = pitcher_train_data,
                  method = 'glmnet', 
-                 tuneGrid = expand.grid(alpha = 1, lambda = lambda.min)
+                 tuneGrid = lasso_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
                )
+pitcher_lasso_accuracy = confusionMatrix(predict(pitcher_lasso, pitcher_train_data), pitcher_train_data$SB)$overall['Accuracy']
+on_catch_lasso<-train(SB ~ ., data = on_catch_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = lasso_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+on_catch_lasso_accuracy = confusionMatrix(predict(on_catch_lasso, on_catch_train_data), on_catch_train_data$SB)$overall['Accuracy']
+catcher_throw_lasso<-train(SB ~ ., data = catcher_throw_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = lasso_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+catcher_throw_lasso_accuracy = confusionMatrix(predict(catcher_throw_lasso, catcher_throw_train_data), catcher_throw_train_data$SB)$overall['Accuracy']
+fielder_lasso<-train(SB ~ ., data = fielder_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = lasso_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+fielder_lasso_accuracy = confusionMatrix(predict(fielder_lasso, fielder_train_data), fielder_train_data$SB)$overall['Accuracy']
+
+```
+```{r evented_ridge}
+myControl <- trainControl(
+                           method = "cv", number = 10,
+                           summaryFunction = twoClassSummary,
+                           classProbs = TRUE
+                          )
+ridge_tune_grid= expand.grid(alpha = 0, lambda = seq(0.0001, 1, length = 100))
+pitcher_ridge<-train(SB ~ ., data = pitcher_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+pitcher_ridge_accuracy = confusionMatrix(predict(pitcher_ridge, pitcher_train_data), pitcher_train_data$SB)$overall['Accuracy']
+on_catch_ridge<-train(SB ~ ., data = on_catch_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+on_catch_ridge_accuracy = confusionMatrix(predict(on_catch_ridge, on_catch_train_data), on_catch_train_data$SB)$overall['Accuracy']
+catcher_throw_ridge<-train(SB ~ ., data = catcher_throw_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+catcher_throw_ridge_accuracy <- confusionMatrix(predict(catcher_throw_ridge, catcher_throw_train_data), catcher_throw_train_data$SB)$overall['Accuracy']
+fielder_ridge<-train(SB ~ ., data = fielder_train_data,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+fielder_ridge_accuracy <- confusionMatrix(predict(fielder_ridge, fielder_train_data), fielder_train_data$SB)$overall['Accuracy']
+
+```
+```{r glm}
+
+pitcher_simple <- glm(SB ~ ., data = pitcher_train_data, family = "binomial")
+on_catch_simple <- glm(SB ~ ., data = on_catch_train_data, family = "binomial")
+catcher_throw_simple <- glm(SB ~ ., data = catcher_throw_train_data, family = "binomial")
+fielder_simple <- glm(SB ~ ., data = fielder_train_data, family = "binomial")
+
+pitcher_res <-predict(pitcher_simple, pitcher_train_data, type = 'response')
+pitcher_res <- as.factor(ifelse(pitcher_res > 0.5, "success", "caught"))
+pitcher_simple_accuracy <- confusionMatrix(pitcher_res, pitcher_train_data$SB)$overall['Accuracy']
+on_catch_res <-predict(on_catch_simple, on_catch_train_data, type = 'response')
+on_catch_res <- as.factor(ifelse(on_catch_res > 0.5, "success", "caught"))
+on_catch_simple_accuracy <- confusionMatrix(on_catch_res, on_catch_train_data$SB)$overall['Accuracy']
+catcher_throw_res <-predict(catcher_throw_simple, catcher_throw_train_data, type = 'response')
+catcher_throw_res <- as.factor(ifelse(catcher_throw_res > 0.5, "success", "caught"))
+catcher_throw_simple_accuracy <- confusionMatrix(catcher_throw_res, catcher_throw_train_data$SB)$overall['Accuracy']
+fielder_res <-predict(fielder_simple, fielder_train_data, type = 'response')
+fielder_res <- as.factor(ifelse(fielder_res > 0.5, "success", "caught"))
+fielder_simple_accuracy <- confusionMatrix(fielder_res, fielder_train_data$SB)$overall['Accuracy']
+
+```
+
+```{r xgboost}
+## I think I overtrained
+myControl <- trainControl(
+                           method = "cv", number = 10,
+                           summaryFunction = twoClassSummary,
+                           classProbs = TRUE
+                          )
+x <- train[c('SB', 'exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')]
+x$SB <- as.factor(x$SB)
+library(data.table)
+
+levels(x$SB) <- c("caught", "success")
+x <- setDT(x)
+xgboost_tuned_grid= expand.grid(
+  nrounds = 50,
+  max_depth = 3, # SET
+  eta = 0.05, # SET
+  gamma = 0,
+  colsample_bytree = 1, #SET,
+  min_child_weight = 1, #SET
+  subsample = 1 #SET
+)
+train_control = trainControl(
+  method = "cv",
+  number = 10,
+  verboseIter = F,
+  allowParallel = T
+)
+xgb <- train(x = x[,-1],
+             y = x$SB,
+             trControl = train_control,
+             tuneGrid = xgboost_tuned_grid,
+             method = "xgbTree",
+             verbosity = 0)
+confusionMatrix(predict(xgb, x), x$SB)
 coef(lasso$finalModel, lasso$bestTune$lambda)
+
 ```
 
-```{r step}
-step_data <- as.data.frame(x)
-rownames(step_data) <- NULL
-step_data$y <- y
-simple <- glm(y ~ exchange + timeOfThrow + timeToPlate + leadoff, data = step_data, family = "binomial")
-complicated <- glm(y ~., data = step_data, family = "binomial")
-step(simple, scope = list(lower=simple, upper=complicated), direction = "both", k=2)
+```{r model accuracies}
+predicted_model_accuracies = data.frame(pitcher=c(pitcher_simple_accuracy, pitcher_ridge_accuracy, pitcher_lasso_accuracy), on_catch=c(on_catch_simple_accuracy, on_catch_ridge_accuracy, on_catch_lasso_accuracy), catcher_throw=c(catcher_throw_simple_accuracy, catcher_throw_ridge_accuracy, catcher_throw_lasso_accuracy), fielder=c(fielder_simple_accuracy, fielder_ridge_accuracy, fielder_lasso_accuracy))
+rownames(predicted_model_accuracies) <- c("simple", "ridge", "lasso")
+predicted_model_accuracies
+
 ```
 
+```{r predicted_results}
+x <- predict(pitcher_simple, pitcher_test_data, type='response')
+pitcher_simple_test_predictions <- as.factor(ifelse(x > 0.5, "success", "caught"))
+pitcher_test_results <- data.frame(pitcher_test_data$SB, predict(pitcher_lasso, pitcher_test_data), predict(pitcher_ridge, pitcher_test_data), pitcher_simple_test_predictions)
+colnames(pitcher_test_results) <- c("TRUTH", "LASSO", "RIDGE", "GLM")
+pitcher_test_results
 
-```{r ridge}
-y <- train$SB
-x <- data.matrix(train[c('exchange', 'timeOfThrow', 'timeToPlate', 'leadoff', 'rDist2B', 'maxSpeed', 'ball_x', 'ball_y', 'ball_z')])
-x <- scale(x)
- 
-lambdas <- c()
-for (p in 1:100){
-  cv <- cv.glmnet(x, y, alpha=1)  
-  lambdas <- append(lambdas, cv$lambda)
-}
-lambda.min <- min(lambdas)
-ridge<-train(y= y,
-                 x = x,
-                 method = 'glmnet', 
-                 tuneGrid = expand.grid(alpha = 0, lambda = lambda.min)
-               )
-coef(ridge$finalModel, ridge$bestTune$lambda)
-```
-```
+x <- predict(on_catch_simple, on_catch_test_data, type='response')
+on_catch_simple_test_predictions <- as.factor(ifelse(x > 0.5, "success", "caught"))
+on_catch_test_results <- data.frame(on_catch_test_data$SB, predict(on_catch_lasso, on_catch_test_data), predict(on_catch_ridge, on_catch_test_data), on_catch_simple_test_predictions)
+colnames(on_catch_test_results) <- c("TRUTH", "LASSO", "RIDGE", "GLM")
+on_catch_test_results
 
-```{r makePredicts}
+x <- predict(catcher_throw_simple, catcher_throw_test_data, type='response')
+catcher_throw_simple_test_predictions <- as.factor(ifelse(x > 0.5, "success", "caught"))
+catcher_throw_test_results <- data.frame(catcher_throw_test_data$SB, predict(catcher_throw_lasso, catcher_throw_test_data), predict(catcher_throw_ridge, catcher_throw_test_data), catcher_throw_simple_test_predictions)
+colnames(catcher_throw_test_results) <- c("TRUTH", "LASSO", "RIDGE", "GLM")
+catcher_throw_test_results
 
+x <- predict(fielder_simple, fielder_test_data, type='response')
+fielder_simple_test_predictions <- as.factor(ifelse(x > 0.5, "success", "caught"))
+fielder_test_results <- data.frame(fielder_test_data$SB, predict(fielder_lasso, fielder_test_data), predict(fielder_ridge, fielder_test_data), fielder_simple_test_predictions)
+colnames(fielder_test_results) <- c("TRUTH", "LASSO", "RIDGE", "GLM")
+fielder_test_results
 
-train_res <- train
-train_res['ACV'] <- fitted(acv_np_mod)
-train_res['AIC'] <- fitted(aic_np_mod)
-train_res['BIC'] <- fitted(bic_np_mod)
-train_res['GACV'] <- fitted(gacv_np_mod)
-train_res['GCV'] <- fitted(gcv_np_mod)
-train_res['LASSO'] <- predict(lasso_model, x)
-train_res['OCV'] <- fitted(ocv_np_mod)
-train_res['PQL'] <- fitted(pql_np_mod)
-train_res['RIDGE'] <- predict(ridge_model, x)
-summary(acv_np_mod)
-summary(aic_np_mod)
-summary(bic_np_mod)
-summary(gacv_np_mod)
-summary(gcv_np_mod)
-summary(ocv_np_mod)
-summary(pql_np_mod)
-predictions <- test
-predictions["TRUTH"] <- true_train_vals
-predictions["ACV"] <- predict(acv_np_mod, test, type="response")
-predictions["AIC"] <- predict(aic_np_mod, test, type="response")
-predictions["BIC"] <- predict(bic_np_mod, test, type="response")
-predictions["GACV"] <- predict(gacv_np_mod, test, type="response")
-predictions["GCV"] <- predict(gcv_np_mod, test, type="response")
-predictions["OCV"] <- predict(ocv_np_mod, test, type="response")
-predictions["PQL"] <- predict(pql_np_mod, test, type="response")
-lm_test <- as.matrix(test)
-predictions["LASSO"] <- predict(lasso_model, lm_test, type="response")
-predictions["RIDGE"] <- predict(ridge_model, lm_test, type="response")
-predictions
+pitcher_lasso_test_accuracy <- confusionMatrix(predict(pitcher_lasso, pitcher_test_data), pitcher_test_data$SB)$overall['Accuracy']
+pitcher_ridge_test_accuracy <- confusionMatrix(predict(pitcher_ridge, pitcher_test_data), pitcher_test_data$SB)$overall['Accuracy']
+pitcher_simple_test_accuracy <- confusionMatrix(pitcher_simple_test_predictions, pitcher_test_data$SB)$overall['Accuracy']
+on_catch_lasso_test_accuracy <- confusionMatrix(predict(on_catch_lasso, on_catch_test_data), on_catch_test_data$SB)$overall['Accuracy']
+on_catch_ridge_test_accuracy <- confusionMatrix(predict(on_catch_ridge, on_catch_test_data), on_catch_test_data$SB)$overall['Accuracy']
+on_catch_simple_test_accuracy <- confusionMatrix(on_catch_simple_test_predictions, on_catch_test_data$SB)$overall['Accuracy']
+catcher_throw_lasso_test_accuracy <- confusionMatrix(predict(catcher_throw_lasso, catcher_throw_test_data), catcher_throw_test_data$SB)$overall['Accuracy']
+catcher_throw_ridge_test_accuracy <- confusionMatrix(predict(catcher_throw_ridge, catcher_throw_test_data), catcher_throw_test_data$SB)$overall['Accuracy']
+catcher_throw_simple_test_accuracy <- confusionMatrix(catcher_throw_simple_test_predictions, catcher_throw_test_data$SB)$overall['Accuracy']
+fielder_lasso_test_accuracy <- confusionMatrix(predict(fielder_lasso, fielder_test_data), fielder_test_data$SB)$overall['Accuracy']
+fielder_ridge_test_accuracy <- confusionMatrix(predict(fielder_ridge, fielder_test_data), fielder_test_data$SB)$overall['Accuracy']
+fielder_simple_test_accuracy <- confusionMatrix(fielder_simple_test_predictions, fielder_test_data$SB)$overall['Accuracy']
 
+test_model_results = data.frame(pitcher=c(pitcher_simple_test_accuracy, pitcher_ridge_test_accuracy, pitcher_lasso_test_accuracy), on_catch=c(on_catch_simple_test_accuracy, on_catch_ridge_test_accuracy, on_catch_lasso_test_accuracy), catcher_throw=c(catcher_throw_simple_test_accuracy, catcher_throw_ridge_test_accuracy, catcher_throw_lasso_test_accuracy), fielder=c(fielder_simple_test_accuracy, fielder_ridge_test_accuracy, fielder_lasso_test_accuracy))
+rownames(test_model_results) <- c("simple", "ridge", "lasso")
+test_model_results
 ```
