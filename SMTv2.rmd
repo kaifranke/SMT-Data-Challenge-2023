@@ -1,0 +1,277 @@
+---
+title: "SMTDataV2"
+author: "Jackson Balch"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(caret)
+library(mlbench)
+library(npreg)
+library(glmnet)
+library(MLmetrics)
+set.seed(69)
+```
+
+## Data Load
+```{r DataLoad}
+dat <- read.csv('SBSimple.csv')
+dat <- na.omit(dat)
+```
+
+```{r dataManip}
+playered_data <- dat %>%
+  select(-c(X, timediff, play_id, game_str, timestamp, popTime, leadoff))
+
+playered_data$SB <- as.factor(playered_data$SB)
+levels(playered_data$SB) <- c("caught", "success")
+
+playered_data$playerAct <- ifelse(playered_data$playerAct %in% c("C", "P"), playered_data$playerAct, "INF")
+
+pitcher_data <- playered_data %>%
+  filter(playerAct == "P") %>% 
+  filter(event == "pitch") %>%
+  select(-c(playerAct, event))
+pitcher_sample <- createDataPartition(pitcher_data$SB, times=1, p=.6, list=FALSE)
+pitcher_train_data <- pitcher_data[pitcher_sample, ]
+pitcher_test_data <- pitcher_data[-pitcher_sample, ]
+
+on_catch_data <- playered_data %>%
+  filter(playerAct == "C") %>%
+  filter(event == "ball acquired") %>%
+  select(-c(playerAct, event))
+on_catch_sample <- createDataPartition(on_catch_data$SB, times=1, p=.6, list=FALSE)
+on_catch_train_data <- on_catch_data[on_catch_sample, ]
+on_catch_test_data <- on_catch_data[-on_catch_sample, ]
+
+catcher_throw_data <- playered_data %>%
+  filter(playerAct == "C") %>%
+  filter(event == "throw (ball-in-play)") %>%
+  select(-c(playerAct, event))
+catcher_throw_sample <- createDataPartition(catcher_throw_data$SB, times=1, p=.6, list=FALSE)
+catcher_throw_train_data <- catcher_throw_data[catcher_throw_sample, ]
+catcher_throw_test_data <- catcher_throw_data[-catcher_throw_sample, ]
+
+fielder_data <- playered_data %>%
+  filter(playerAct == "INF") %>%
+  filter(event == "ball acquired") %>%
+  select(-c(playerAct, event))
+fielder_sample <- createDataPartition(fielder_data$SB, times=1, p=.6, list=FALSE)
+fielder_train_data <- fielder_data[fielder_sample, ]
+fielder_test_data <- fielder_data[-fielder_sample, ]
+pitcher_train_data_selected <- pitcher_train_data %>%
+  select(SB, rDist2B, maxSpeed)
+on_catch_train_data_selected <- on_catch_train_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z)
+catcher_throw_train_data_selected <- catcher_throw_train_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, exchange, ball_x, ball_y, ball_z)
+fielder_train_data_selected <- fielder_train_data
+```
+
+```{r filtered_event_lasso}
+trainControl <- trainControl(method="repeatedcv", number=10, repeats=3, verboseIter = TRUE, summary=twoClassSummary, classProbs=T)
+metric <- "ROC"
+set.seed(69)
+
+s1.fit.treebag <- train(SB~., data = pitcher_train_data_selected, method = "treebag", metric = metric,trControl = trainControl)
+
+s1.fit.rf <- train(SB~., data = pitcher_train_data_selected, method = "rf", metric = metric,trControl = trainControl)
+
+s1.fit.c50 <- train(SB~., data = pitcher_train_data_selected, method = "C5.0", metric = metric,trControl = trainControl)
+
+s1.fit.glm <- train(SB~., data = pitcher_train_data_selected, method="glm",
+                 metric=metric,trControl=trainControl)
+s1.fit.lda <- train(SB~., data = pitcher_train_data_selected, method="lda",
+                 metric=metric,trControl=trainControl)
+
+s1.fit.knn <- train(SB~., data = pitcher_train_data_selected, method="knn",
+                 metric=metric,trControl=trainControl)
+
+s1.fit.cart <- train(SB~., data = pitcher_train_data_selected, method="rpart",
+                 metric=metric,trControl=trainControl)
+Grid = expand.grid(usekernel=TRUE,adjust=1,fL=c(0.2,0.5,0.8))
+s1.fit.nb <- train(SB~., data = pitcher_train_data_selected, method="nb",
+                 metric=metric,trControl=trainControl,
+                tuneGrid=Grid)
+p_models <- list(s1.fit.c50, s1.fit.cart, s1.fit.glm, s1.fit.knn, s1.fit.lda, s1.fit.nb, s1.fit.rf, s1.fit.treebag)
+names(p_models) <- c("c50", "cart", "glm", 'knn', 'lda', 'nb', 'rf', 'treebag')
+p_res <- resamples(p_models)
+summary(p_res)
+scales = list(x=list(relation="free"), y=list(relation="free"))
+bwplot(p_res, scales=scales)
+```
+
+```{r oc}
+set.seed(69)
+
+s2.fit.treebag <- train(SB~., data = on_catch_train_data_selected, method = "treebag", metric = metric,trControl = trainControl)
+
+s2.fit.rf <- train(SB~., data = on_catch_train_data_selected, method = "rf", metric = metric,trControl = trainControl)
+
+s2.fit.c50 <- train(SB~., data = on_catch_train_data_selected, method = "C5.0", metric = metric,trControl = trainControl)
+
+s2.fit.glm <- train(SB~., data = on_catch_train_data_selected, method="glm",
+                 metric=metric,trControl=trainControl)
+s2.fit.lda <- train(SB~., data = on_catch_train_data_selected, method="lda",
+                 metric=metric,trControl=trainControl)
+
+s2.fit.knn <- train(SB~., data = on_catch_train_data_selected, method="knn",
+                 metric=metric,trControl=trainControl)
+
+s2.fit.cart <- train(SB~., data = on_catch_train_data_selected, method="rpart",
+                 metric=metric,trControl=trainControl)
+Grid = expand.grid(usekernel=TRUE,adjust=1,fL=c(0.2,0.5,0.8))
+s2.fit.nb <- train(SB~., data = on_catch_train_data_selected, method="nb",
+                 metric=metric,trControl=trainControl,
+                tuneGrid=Grid)
+oc_models <- list(s2.fit.c50, s2.fit.cart, s2.fit.glm, s2.fit.knn, s2.fit.lda, s2.fit.nb, s2.fit.rf, s2.fit.treebag)
+names(oc_models) <- c("c50", "cart", "glm", 'knn', 'lda', 'nb', 'rf', 'treebag')
+oc_res <- resamples(oc_models)
+summary(oc_res)
+scales = list(x=list(relation="free"), y=list(relation="free"))
+bwplot(oc_res, scales=scales)
+```
+
+```{r ct}
+set.seed(69)
+
+s3.fit.treebag <- train(SB~., data = catcher_throw_train_data_selected, method = "treebag", metric = metric,trControl = trainControl)
+
+s3.fit.rf <- train(SB~., data = catcher_throw_train_data_selected, method = "rf", metric = metric,trControl = trainControl)
+
+s3.fit.c50 <- train(SB~., data = catcher_throw_train_data_selected, method = "C5.0", metric = metric,trControl = trainControl)
+
+s3.fit.glm <- train(SB~., data = catcher_throw_train_data_selected, method="glm",
+                 metric=metric,trControl=trainControl)
+s3.fit.lda <- train(SB~., data = catcher_throw_train_data_selected, method="lda",
+                 metric=metric,trControl=trainControl)
+
+s3.fit.knn <- train(SB~., data = catcher_throw_train_data_selected, method="knn",
+                 metric=metric,trControl=trainControl)
+
+s3.fit.cart <- train(SB~., data = catcher_throw_train_data_selected, method="rpart",
+                 metric=metric,trControl=trainControl)
+Grid = expand.grid(usekernel=TRUE,adjust=1,fL=c(0.2,0.5,0.8))
+s3.fit.nb <- train(SB~., data = catcher_throw_train_data_selected, method="nb",
+                 metric=metric,trControl=trainControl,
+                tuneGrid=Grid)
+ct_models <- list(s3.fit.c50, s3.fit.cart, s3.fit.glm, s3.fit.knn, s3.fit.lda, s3.fit.nb, s3.fit.rf, s3.fit.treebag)
+names(ct_models) <- c("c50", "cart", "glm", 'knn', 'lda', 'nb', 'rf', 'treebag')
+ct_res <- resamples(ct_models)
+summary(ct_res)
+scales = list(x=list(relation="free"), y=list(relation="free"))
+bwplot(ct_res, scales=scales)
+
+```
+
+```{r f}
+set.seed(69)
+
+s4.fit.treebag <- train(SB~., data = fielder_train_data_selected, method = "treebag", metric = metric,trControl = trainControl)
+
+s4.fit.rf <- train(SB~., data = fielder_train_data_selected, method = "rf", metric = metric,trControl = trainControl)
+
+s4.fit.c50 <- train(SB~., data = fielder_train_data_selected, method = "C5.0", metric = metric,trControl = trainControl)
+
+s4.fit.glm <- train(SB~., data = fielder_train_data_selected, method="glm",
+                 metric=metric,trControl=trainControl)
+s4.fit.lda <- train(SB~., data = fielder_train_data_selected, method="lda",
+                 metric=metric,trControl=trainControl)
+
+s4.fit.knn <- train(SB~., data = fielder_train_data_selected, method="knn",
+                 metric=metric,trControl=trainControl)
+
+s4.fit.cart <- train(SB~., data = fielder_train_data_selected, method="rpart",
+                 metric=metric,trControl=trainControl)
+Grid = expand.grid(usekernel=TRUE,adjust=1,fL=c(0.2,0.5,0.8))
+s4.fit.nb <- train(SB~., data = fielder_train_data_selected, method="nb",
+                 metric=metric,trControl=trainControl,
+                tuneGrid=Grid)
+f_models <- list(s4.fit.c50, s4.fit.cart, s4.fit.glm, s4.fit.knn, s4.fit.lda, s4.fit.nb, s4.fit.rf, s4.fit.treebag)
+names(f_models) <- c("c50", "cart", "glm", 'knn', 'lda', 'nb', 'rf', 'treebag')
+f_res <- resamples(f_models)
+summary(f_res)
+scales = list(x=list(relation="free"), y=list(relation="free"))
+bwplot(f_res, scales=scales)
+
+```
+
+```{r rpart2}
+trainControl <- trainControl(method="cv",
+                             number=10,
+                             summary=twoClassSummary,
+                             classProbs=T
+                             )
+s1.fit.cart <- train(SB~., data = pitcher_train_data_selected, method = "rpart2", trControl = trainControl, tuneLength=10)
+s2.fit.cart <- train(SB~., data = on_catch_train_data_selected, method = "rpart2", trControl = trainControl, tuneLength=10)
+s3.fit.cart <- train(SB~., data = catcher_throw_train_data_selected, method = "rpart2", trControl = trainControl, tuneLength=10)
+s4.fit.cart <- train(SB~., data = fielder_train_data_selected, method = "rpart2", trControl = trainControl, tuneLength=10)
+confusionMatrix(predict(s1.fit.cart, s1.test.data), s1.test.data$SB, mode = 'everything')$byClass['F1']
+confusionMatrix(predict(s2.fit.cart, s2.test.data), s2.test.data$SB, mode = 'everything')$byClass['F1']
+confusionMatrix(predict(s3.fit.cart, s3.test.data), s3.test.data$SB, mode = 'everything')$byClass['F1']
+confusionMatrix(predict(s4.fit.cart, s4.test.data), s4.test.data$SB, mode = 'everything')$byClass['F1']
+plot(s1.fit.cart$finalModel)
+text(s1.fit.cart$finalModel,  digits = 3)
+plot(s2.fit.cart$finalModel)
+text(s2.fit.cart$finalModel,  digits = 3)
+plot(s3.fit.cart$finalModel)
+text(s3.fit.cart$finalModel,  digits = 3)
+plot(s4.fit.cart$finalModel)
+text(s4.fit.cart$finalModel,  digits = 3)
+
+```
+
+
+```{r npreg}
+pitcher_train_data_selected <- pitcher_train_data %>%
+  select(SB, rDist2B, maxSpeed) %>% scale() %>% as.data.frame()
+pitcher_train_data_selected$SB <- ifelse(pitcher_train_data_selected$SB > 0, 1, 0)
+on_catch_train_data_selected <- on_catch_train_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z) %>% scale() %>% as.data.frame()
+on_catch_train_data_selected$SB <- ifelse(on_catch_train_data_selected$SB > 0, 1, 0)
+catcher_throw_train_data_selected <- catcher_throw_train_data %>%
+  select(SB,rDist2B, maxSpeed, timeToPlate, exchange, ball_x, ball_y, ball_z) %>% scale() %>% as.data.frame()
+catcher_throw_train_data_selected$SB <- ifelse(catcher_throw_train_data_selected$SB > 0, 1, 0)
+fielder_train_data_selected <- fielder_train_data %>% scale() %>% as.data.frame()
+fielder_train_data_selected$SB <- ifelse(fielder_train_data_selected$SB > 0, 1, 0)
+s1.test.data <- pitcher_test_data %>%
+  select(SB, rDist2B, maxSpeed) %>% scale() %>% as.data.frame()
+s1.test.data$SB <- ifelse(s1.test.data$SB > 0, 1, 0)
+s2.test.data <- on_catch_test_data %>%
+  select(SB,rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z) %>% scale() %>% as.data.frame()
+s2.test.data$SB <- ifelse(s2.test.data$SB > 0, 1, 0)
+s3.test.data <- catcher_throw_test_data %>%
+  select(SB,rDist2B, maxSpeed, timeToPlate, exchange, ball_x, ball_y, ball_z) %>% scale() %>% as.data.frame()
+s3.test.data$SB <- ifelse(s3.test.data$SB > 0, 1, 0)
+s4.test.data <- fielder_test_data %>% scale() %>% as.data.frame()
+s4.test.data$SB <- ifelse(s4.test.data$SB > 0, 1, 0)
+s1.np.greg <- gsm(SB~., family='binomial', data=as.data.frame(pitcher_train_data_selected))
+s1_res <- predict(s1.np.greg, s1.test.data, type = 'response')
+rmse.test.s1 <- sqrt(mean((s1.test.data$SB - s1_res)^2))
+s2.np.greg <- gsm(SB~., family='binomial', data=as.data.frame(on_catch_train_data_selected))
+s2_res <- predict(s2.np.greg, s2.test.data, type = 'response')
+rmse.test.s2 <- sqrt(mean((s2.test.data$SB - s2_res)^2))
+s3.np.greg <- gsm(SB~., family='binomial', data=as.data.frame(catcher_throw_train_data_selected))
+s3_res <- predict(s3.np.greg, s3.test.data, type = 'response')
+rmse.test.s3 <- sqrt(mean((s3.test.data$SB - s3_res)^2))
+s4.np.greg <- gsm(SB~., family='binomial', data=as.data.frame(fielder_train_data_selected))
+s4_res <- predict(s4.np.greg, s4.test.data, type = 'response')
+rmse.test.s4 <- sqrt(mean((s4.test.data$SB - s4_res)^2))
+c(rmse.test.s1, rmse.test.s2, rmse.test.s3, rmse.test.s4)
+c(LogLoss(s1_res, s1.test.data$SB), LogLoss(s2_res, s2.test.data$SB), LogLoss(s3_res, s3.test.data$SB), LogLoss(s4_res, s4.test.data$SB))
+```
+
+```{r glm}
+s1.glm <- glm(SB~., family='binomial', data=pitcher_train_data_selected)
+s1_res <- predict(s1.glm, s1.test.data, type = 'response')
+s2.glm <- glm(SB~., family='binomial', data=on_catch_train_data_selected)
+s2_res <- predict(s2.glm, s2.test.data, type = 'response')
+s3.glm <- glm(SB~., family='binomial', data=catcher_throw_train_data_selected)
+s3_res <- predict(s3.glm, s3.test.data, type = 'response')
+s4.glm <- glm(SB~., family='binomial', data=fielder_train_data_selected)
+s4_res <- predict(s4.glm, s4.test.data, type = 'response')
+c(LogLoss(s1_res, s1.test.data$SB), LogLoss(s2_res, s2.test.data$SB), LogLoss(s3_res, s3.test.data$SB), LogLoss(s4_res, s4.test.data$SB))
+```
