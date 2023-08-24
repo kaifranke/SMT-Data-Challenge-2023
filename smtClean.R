@@ -1,3 +1,5 @@
+#### File Retrieval ####
+
 setwd("~/Baseball Research/SMT 2023/SMT-Data-Challenge/smt_data_challenge_2023/ball_pos")
 file_list = list.files(path = "~/Baseball Research/SMT 2023/SMT-Data-Challenge/smt_data_challenge_2023/ball_pos")
 ballpos = data.frame()
@@ -114,9 +116,11 @@ team_info = read.csv("team_info.csv")
 
 
 
-
+#### Data Cleaning and Manipulation ####
 
 library(dplyr)
+
+# position and event label adjusting
 
 game_events = game_events %>%
   rename(positionEvent = player_position) %>%
@@ -171,7 +175,7 @@ player_pos = player_pos %>%
 
 
 
-
+# joining data
 
 pos = right_join(ballpos, player_pos, by = c("game_str", "timestamp", "play_id"))
 game = left_join(game_events, game_info, by = c("game_str", "play_per_game"))
@@ -185,6 +189,7 @@ full %>%
   filter(!is.na(first_baserunner))
 
 
+# more joining
 pos_event = inner_join(pos, game_events, by = c("game_str", "timestamp"))
 pos_info = inner_join(pos_event, game_info, by = c("game_str", "play_per_game"))
 
@@ -194,7 +199,7 @@ pos_info = inner_join(pos_event, game_info, by = c("game_str", "play_per_game"))
 
 
 
-
+# working to figure out stolen bases and attempts
 
 g1 = game %>%
   select(game_str, play_id, positionEvent, first_baserunner, second_baserunner, third_baserunner, event_code) %>%
@@ -247,6 +252,7 @@ g1 = game %>%
          lead2 != "ball hit into play") %>%
   mutate(SB = ifelse(first_baserunner == nextr2B | first_baserunner == nextr3B, 1, 0))
 
+# different sequences for stolen base attempts
 
 g2 = g1 %>%
   filter(lead1 == "ball acquired",
@@ -319,6 +325,9 @@ new2 = inner_join(pos_info, g, by = c("game_str", "play_id.x" = "play_id"))%>%
 new2 = unique(new2)
 
 
+
+# adding ball and player position to each row
+
 ballpos = new2 %>%
   group_by(game_str, play_id, timestamp) %>%
   summarise(ball_x = mean(ball_position_x),
@@ -373,6 +382,8 @@ posSB = inner_join(posSB, ballpos)
 new3 = new2 %>%
   select(game_str, play_id, timestamp, event_code.x, positionEvent.x, SB)
 
+
+# aggregation for data and final cleaning
 
 new4 = unique(inner_join(posSB, new3)) %>%
   arrange(game_str, play_id, timestamp) %>%
