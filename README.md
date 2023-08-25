@@ -1,6 +1,6 @@
 # SMT-Data-Challenge-2023
 
-This is the GitHub reposity for the Sports Analytics Club at the University of Minnesota's submission to the 2023 SMT Data Challenge. The contributors to this are Kai Franke, Jack Rogers, Jackson Balch, and Isaac Blumhoefer. In our project for this year, we are looking at the relationship between the pitcher, catcher, and middle infielder to determine how they effect each other in trying to throw a basestealer out. 
+This is the GitHub repository for a submission to the 2023 SMT Data Challenge. In our project for this year, we are looking at the relationship between the pitcher, catcher, and middle infielder to determine how they effect each other in trying to throw a basestealer out. 
 
 The following files are in this repository:
 * smtClean.R: the file involving all of the cleaning and preparation for this project.
