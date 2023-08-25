@@ -28,3 +28,5 @@ The following files are in this repository:
     * ball_x: the location of the ball in this moment of time with respect to left or right of second base with 0 being straight up the middle
     * ball_y: the location of the ball in this moment of time with respect to home plate with 0 being on home plate and 60.5 being at the pitcher's mound
     * ball_z: the location of the ball in this moment of time with respect to the ground with 0 being on the ground
+* dat exp.R
+ *  This file shows all of the code that created the plots in the data exploration section of the paper.
