@@ -167,3 +167,142 @@ test_lasso <- glm(SB~maxSpeed, data=pitcher_train_data_selected, family='binomia
 un_factored_truth <- ifelse(pitcher_train_data_selected$SB == 'caught', 0, 1)
 ll_test <- LogLoss(predict(test_lasso, pitcher_train_data_selected), un_factored_truth)
 ```
+
+```{r filtered_event_ridge}
+pitcher_train_data_selected <- pitcher_train_data %>%
+  select(SB, rDist2B, maxSpeed)
+on_catch_train_data_selected <- on_catch_train_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z)
+catcher_throw_train_data_selected <- catcher_throw_train_data%>%
+  select(SB, maxSpeed, rDist2B, timeToPlate, exchange, ball_x, ball_y, ball_z)
+fielder_train_data_selected <- fielder_train_data %>%
+  select(-c(leadoff))
+myControl <- trainControl(
+                           method = "cv", number = 10,
+                           summaryFunction = twoClassSummary,
+                           classProbs = TRUE
+                          )
+ridge_tune_grid= expand.grid(alpha = 0, lambda = seq(0.0001, 1, length = 100))
+pitcher_selected_ridge<-train(SB ~ ., data = pitcher_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+on_catch_selected_ridge<-train(SB ~ ., data = on_catch_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+catcher_throw_selected_ridge<-train(SB ~ ., data = catcher_throw_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+fielder_selected_ridge<-train(SB ~ ., data = fielder_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = ridge_tune_grid,
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+
+pitcher_selected_final_ridge<-train(SB ~ ., data = pitcher_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 1, lambda = pitcher_selected_ridge$bestTune$lambda),
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+on_catch_selected_final_ridge<-train(SB ~ ., data = on_catch_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 1, lambda = on_catch_selected_ridge$bestTune$lambda),
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+catcher_throw_selected_final_ridge<-train(SB ~ ., data = catcher_throw_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 1, lambda = catcher_throw_selected_ridge$bestTune$lambda),
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+fielder_selected_final_ridge<-train(SB ~ ., data = fielder_train_data_selected,
+                 method = 'glmnet', 
+                 tuneGrid = expand.grid(alpha = 1, lambda = fielder_selected_ridge$bestTune$lambda),
+                 trControl = myControl,
+                 preProcess = "scale"
+               )
+pitcher_selected_final_ridge_accuracy = confusionMatrix(predict(pitcher_selected_final_ridge, pitcher_train_data_selected), pitcher_train_data_selected$SB)$overall['Accuracy']
+on_catch_selected_final_ridge_accuracy = confusionMatrix(predict(on_catch_selected_final_ridge, on_catch_train_data_selected), on_catch_train_data_selected$SB)$overall['Accuracy']
+catcher_throw_selected_final_ridge_accuracy = confusionMatrix(predict(catcher_throw_selected_final_ridge, catcher_throw_train_data_selected), catcher_throw_train_data_selected$SB)$overall['Accuracy']
+fielder_selected_final_ridge_accuracy = confusionMatrix(predict(fielder_selected_final_ridge, fielder_train_data_selected), fielder_train_data_selected$SB)$overall['Accuracy']
+c(pitcher_selected_final_ridge_accuracy, on_catch_selected_final_ridge_accuracy, catcher_throw_selected_final_ridge_accuracy, fielder_selected_final_ridge_accuracy)
+
+un_factored_truth <- ifelse(pitcher_train_data_selected$SB == 'caught', 0, 1)
+ll_pitcher = LogLoss(extractProb(list(pitcher_selected_final_ridge), testX = pitcher_train_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(on_catch_train_data_selected$SB == 'caught', 0, 1)
+ll_oc = LogLoss(extractProb(list(on_catch_selected_final_ridge), testX = on_catch_train_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(catcher_throw_train_data_selected$SB == 'caught', 0, 1)
+ll_ct = LogLoss(extractProb(list(catcher_throw_selected_final_ridge), testX = catcher_throw_train_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(fielder_train_data_selected$SB == 'caught', 0, 1)
+ll_f = LogLoss(extractProb(list(fielder_selected_final_ridge), testX = fielder_train_data_selected)$success, un_factored_truth)
+c(ll_pitcher, ll_oc, ll_ct, ll_f)
+
+pitcher_test_data_selected <- pitcher_test_data %>%
+  select(SB, rDist2B, maxSpeed)
+on_catch_test_data_selected <- on_catch_test_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z)
+catcher_throw_test_data_selected <- catcher_throw_test_data%>%
+  select(SB, maxSpeed, rDist2B, timeToPlate, exchange, ball_x, ball_y, ball_z)
+fielder_test_data_selected <- fielder_test_data %>%
+  select(-c(leadoff))
+
+un_factored_truth <- ifelse(pitcher_test_data_selected$SB == 'caught', 0, 1)
+ll_pitcher_test = LogLoss(extractProb(list(pitcher_selected_final_ridge), testX = pitcher_test_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(on_catch_test_data_selected$SB == 'caught', 0, 1)
+ll_oc_test = LogLoss(extractProb(list(on_catch_selected_final_ridge), testX = on_catch_test_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(catcher_throw_test_data_selected$SB == 'caught', 0, 1)
+ll_ct_test = LogLoss(extractProb(list(catcher_throw_selected_final_ridge), testX = catcher_throw_test_data_selected)$success, un_factored_truth)
+un_factored_truth <- ifelse(fielder_test_data_selected$SB == 'caught', 0, 1)
+ll_f_test = LogLoss(extractProb(list(fielder_selected_final_ridge), testX = fielder_test_data_selected)$success, un_factored_truth)
+c(ll_pitcher_test, ll_oc_test, ll_ct_test, ll_f_test)
+
+test_ridge <- glm(SB~maxSpeed, data=pitcher_train_data_selected, family='binomial')
+un_factored_truth <- ifelse(pitcher_train_data_selected$SB == 'caught', 0, 1)
+ll_test <- LogLoss(predict(test_ridge, pitcher_train_data_selected), un_factored_truth)
+```
+
+```{r glm}
+pitcher_train_data_selected <- pitcher_train_data %>%
+  select(SB, maxSpeed)
+on_catch_train_data_selected <- on_catch_train_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z)
+catcher_throw_train_data_selected <- catcher_throw_train_data%>%
+  select(SB, maxSpeed, rDist2B, timeToPlate, exchange, ball_x, ball_y, ball_z)
+fielder_train_data_selected <- fielder_train_data %>%
+  select(-c(leadoff))
+
+pitcher_simple <- glm(SB~., family = 'binomial', data=pitcher_train_data_selected)
+on_catch_simple <- glm(SB~., family = 'binomial', data=on_catch_train_data_selected)
+catcher_throw_simple <- glm(SB~., family = 'binomial', data=catcher_throw_train_data_selected)
+fielder_simple <- glm(SB~., family = 'binomial', data=fielder_train_data_selected)
+
+pitcher_test_data_selected <- pitcher_test_data %>%
+  select(SB, maxSpeed)
+on_catch_test_data_selected <- on_catch_test_data %>%
+  select(SB, rDist2B, maxSpeed, timeToPlate, ball_x, ball_y, ball_z)
+catcher_throw_test_data_selected <- catcher_throw_test_data%>%
+  select(SB, maxSpeed, rDist2B, timeToPlate, exchange, ball_x, ball_y, ball_z)
+fielder_test_data_selected <- fielder_test_data %>%
+  select(-c(leadoff))
+
+un_factored_truth <- ifelse(pitcher_test_data_selected$SB == 'caught', 0, 1)
+ll_p_s_final <- LogLoss(predict(pitcher_simple, pitcher_test_data_selected, type='response'), un_factored_truth)
+un_factored_truth <- ifelse(on_catch_test_data_selected$SB == 'caught', 0, 1)
+ll_oc_s_final <- LogLoss(predict(on_catch_simple, on_catch_test_data_selected, type='response'),  un_factored_truth)
+un_factored_truth <- ifelse(catcher_throw_test_data_selected$SB == 'caught', 0, 1)
+ll_ct_s_final <- LogLoss(predict(catcher_throw_simple, catcher_throw_test_data_selected, type='response'), un_factored_truth)
+un_factored_truth <- ifelse(fielder_test_data_selected$SB == 'caught', 0, 1)
+ll_f_s_final <- LogLoss(predict(fielder_simple, fielder_test_data_selected, type='response'),  un_factored_truth)
+c(ll_p_s_final, ll_oc_s_final, ll_ct_s_final, ll_f_s_final)
+```s
