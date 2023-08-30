@@ -120,7 +120,7 @@ team_info = read.csv("team_info.csv")
 
 library(dplyr)
 
-# position and event label adjusting
+# Position and event label adjusting
 
 game_events = game_events %>%
   rename(positionEvent = player_position) %>%
@@ -133,8 +133,8 @@ game_events = game_events %>%
          positionEvent = ifelse(positionEvent == 7, "LF", positionEvent),
          positionEvent = ifelse(positionEvent == 8, "CF", positionEvent),
          positionEvent = ifelse(positionEvent == 9, "RF", positionEvent),
-         positionEvent = ifelse(positionEvent == 10, "BTR", positionEvent),
-         positionEvent = ifelse(positionEvent == 11, "r1B", positionEvent),
+         positionEvent = ifelse(positionEvent == 10, "BTR", positionEvent),  
+         positionEvent = ifelse(positionEvent == 11, "r1B", positionEvent),  
          positionEvent = ifelse(positionEvent == 12, "r2B", positionEvent),
          positionEvent = ifelse(positionEvent == 13, "r3B", positionEvent),
          positionEvent = ifelse(positionEvent == 255, "event no player", positionEvent),
@@ -203,7 +203,7 @@ pos_info = inner_join(pos_event, game_info, by = c("game_str", "play_per_game"))
 
 g1 = game %>%
   select(game_str, play_id, positionEvent, first_baserunner, second_baserunner, third_baserunner, event_code) %>%
-  mutate(lead1 = lead(event_code),
+  mutate(lead1 = lead(event_code), # checking the events that happened before the current one
          lead2 = lead(event_code, 2),
          lead3 = lead(event_code, 3),
          lead4 = lead(event_code, 4),
@@ -212,7 +212,7 @@ g1 = game %>%
          lead7 = lead(event_code, 7),
          lead8 = lead(event_code, 8),
          lead9 = lead(event_code, 9),
-         pos2 = lead(positionEvent, 2),
+         pos2 = lead(positionEvent, 2), # checking the positions that made the action for the corresponding event
          pos3 = lead(positionEvent, 3),
          pos4 = lead(positionEvent, 4),
          pos5 = lead(positionEvent, 5),
@@ -220,45 +220,46 @@ g1 = game %>%
          pos7 = lead(positionEvent, 7),
          pos8 = lead(positionEvent, 8),
          pos9 = lead(positionEvent, 9),
-         nextr1B = ifelse(lead3 == "end of play", lead(first_baserunner, 5), NA),
+         nextr1B = ifelse(lead3 == "end of play", lead(first_baserunner, 5), NA), # adding the runner that was next on first base
          nextr1B = ifelse(lead4 == "end of play", lead(first_baserunner, 6), nextr1B),
          nextr1B = ifelse(lead5 == "end of play", lead(first_baserunner, 7), nextr1B),
          nextr1B = ifelse(lead6 == "end of play", lead(first_baserunner, 8), nextr1B),
          nextr1B = ifelse(lead7 == "end of play", lead(first_baserunner, 9), nextr1B),
          nextr1B = ifelse(lead8 == "end of play", lead(first_baserunner, 10), nextr1B),
          nextr1B = ifelse(lead9 == "end of play", lead(first_baserunner, 11), nextr1B),
-         nextr2B = ifelse(lead3 == "end of play", lead(second_baserunner, 5), NA),
+         nextr2B = ifelse(lead3 == "end of play", lead(second_baserunner, 5), NA), # adding the runner that was next on second base
          nextr2B = ifelse(lead4 == "end of play", lead(second_baserunner, 6), nextr2B),
          nextr2B = ifelse(lead5 == "end of play", lead(second_baserunner, 7), nextr2B),
          nextr2B = ifelse(lead6 == "end of play", lead(second_baserunner, 8), nextr2B),
          nextr2B = ifelse(lead7 == "end of play", lead(second_baserunner, 9), nextr2B),
          nextr2B = ifelse(lead8 == "end of play", lead(second_baserunner, 10), nextr2B),
          nextr2B = ifelse(lead9 == "end of play", lead(second_baserunner, 11), nextr2B),
-         nextr3B = ifelse(lead3 == "end of play", lead(third_baserunner, 5), NA),
+         nextr3B = ifelse(lead3 == "end of play", lead(third_baserunner, 5), NA), # adding the runner that was next on third base
          nextr3B = ifelse(lead4 == "end of play", lead(third_baserunner, 6), nextr3B),
          nextr3B = ifelse(lead5 == "end of play", lead(third_baserunner, 7), nextr3B),
          nextr3B = ifelse(lead6 == "end of play", lead(third_baserunner, 8), nextr3B),
          nextr3B = ifelse(lead7 == "end of play", lead(third_baserunner, 9), nextr3B),
          nextr3B = ifelse(lead8 == "end of play", lead(third_baserunner, 10), nextr3B),
          nextr3B = ifelse(lead9 == "end of play", lead(third_baserunner, 11), nextr3B)) %>%
-  filter(event_code == "pitch",
-         first_baserunner > 0,
-         second_baserunner == 0,
-         !is.na(nextr2B),
+  filter(event_code == "pitch", # filter for just the start of the play
+         first_baserunner > 0, # filter so that there is a runner on first
+         second_baserunner == 0, # filter so that there is no runner on second base so that it is possible to steal
+         !is.na(nextr2B), 
          lead1 %in% c("ball bounce", "ball acquired", "ball deflection", "ball deflection off wall",
-                      "ball acquired - unknown field position"),
+                      "ball acquired - unknown field position"), # made it so that the next action was one of these 5 events
          lead2 != "end of play", 
          lead2 !=  "home run", 
          lead2 != "ball hit into play") %>%
   mutate(SB = ifelse(first_baserunner == nextr2B | first_baserunner == nextr3B, 1, 0))
 
-# different sequences for stolen base attempts
+# Different sequences for stolen base attempts
+# I looked at a bunch of different sequences that could possibly happen to create a stolen base and used those to get a bigger sample
 
 g2 = g1 %>%
   filter(lead1 == "ball acquired",
          lead2 == "throw (ball-in-play)",
          lead3 == "ball acquired") %>%
-  mutate(SB = ifelse(first_baserunner == nextr2B | first_baserunner == nextr3B, 1, 0))
+  mutate(SB = ifelse(first_baserunner == nextr2B | first_baserunner == nextr3B, 1, 0)) # checked to call it a stolen base if the runner was on second or third on next pitch
   
 g3 = g1 %>%
   filter(lead1 == "ball bounce",
@@ -314,7 +315,7 @@ g10 = g1 %>%
 
 
 
-g = rbind(g2, g3, g4, g5, g6, g7, g8, g9, g10) %>%
+g = rbind(g2, g3, g4, g5, g6, g7, g8, g9, g10) %>% # combining all of the different sequences
   filter(first_baserunner != nextr1B)
 
 
@@ -329,42 +330,42 @@ new2 = unique(new2)
 # adding ball and player position to each row
 
 ballpos = new2 %>%
-  group_by(game_str, play_id, timestamp) %>%
+  group_by(game_str, play_id, timestamp) %>% # did this as there were multiple rows of the same fielding events, so I got it down to 1 of each moment in time
   summarise(ball_x = mean(ball_position_x),
             ball_y = mean(ball_position_y),
             ball_z = mean(ball_position_z)) %>%
   filter(!is.na(ball_x)) 
 
 posC = new2 %>%
-  filter(player_position == "C") %>%
+  filter(player_position == "C") %>% # adding catcher location as a column
   group_by(game_str, play_id, timestamp) %>%
   summarise(cat_x = mean(field_x),
             cat_y = mean(field_y)) %>%
   filter(!is.na(cat_x))
 
 posSS = new2 %>%
-  filter(player_position == "SS") %>%
+  filter(player_position == "SS") %>% # adding shortstop location as a column
   group_by(game_str, play_id, timestamp) %>%
   summarise(fSS_x = mean(field_x),
             fSS_y = mean(field_y)) %>%
   filter(!is.na(fSS_x))
 
 pos2B = new2 %>%
-  filter(player_position == "2B") %>%
+  filter(player_position == "2B") %>% # adding second baseman location as a column
   group_by(game_str, play_id, timestamp) %>%
   summarise(f2B_x = mean(field_x),
             f2B_y = mean(field_y)) %>%
   filter(!is.na(f2B_x))
 
 posr1B = new2 %>%
-  filter(player_position == "r1B") %>%
+  filter(player_position == "r1B") %>% # adding baserunner location as a column
   group_by(game_str, play_id, timestamp) %>%
   summarise(r1B_x = mean(field_x),
             r1B_y = mean(field_y)) %>%
   filter(!is.na(r1B_x))
 
 posP = new2 %>%
-  filter(player_position == "P") %>%
+  filter(player_position == "P") %>% # adding pitcher location as a column
   group_by(game_str, play_id, timestamp) %>%
   summarise(P_x = mean(field_x),
             P_y = mean(field_y)) %>%
@@ -383,33 +384,35 @@ new3 = new2 %>%
   select(game_str, play_id, timestamp, event_code.x, positionEvent.x, SB)
 
 
-# aggregation for data and final cleaning
+# Aggregation for data and final cleaning
 
 new4 = unique(inner_join(posSB, new3)) %>%
-  arrange(game_str, play_id, timestamp) %>%
+  arrange(game_str, play_id, timestamp) %>% # putting every event in order
   group_by(game_str, play_id) %>%
-  mutate(start_time = min(timestamp)) %>%
+  mutate(start_time = min(timestamp)) %>% # adding the start time of each play
   ungroup() %>%
-  mutate(timediff = timestamp - start_time,
-         rDist2B = sqrt((0 - r1B_x)^2 + (127.3 - r1B_y)^2),
-         rDist3B = sqrt((-63.64 - r1B_x)^2 + (63.64 - r1B_y)^2),
-         ballDist2B = sqrt((0 - ball_x)^2 + (127.3 - ball_y)^2 + (0 - ball_z)^2)) %>%
-  group_by(game_str, play_id) %>%
-  mutate(min3B = min(rDist3B)) %>%
+  mutate(timediff = timestamp - start_time, # putting time since the play started to the current moment in time
+         rDist2B = sqrt((0 - r1B_x)^2 + (127.3 - r1B_y)^2), # adding base runner distance away from second base
+         rDist3B = sqrt((-63.64 - r1B_x)^2 + (63.64 - r1B_y)^2), # adding base runner distance away from third base
+         ballDist2B = sqrt((0 - ball_x)^2 + (127.3 - ball_y)^2 + (0 - ball_z)^2)) %>% # adding ball distance away from second base
+  group_by(game_str, play_id) %>% # grouping by plays
+  mutate(min3B = min(rDist3B)) %>% # sanity check to make sure that when ball got by the infielders, the runner ran to third base
   ungroup() %>%
-  mutate(SB = ifelse(min3B <= 85, 1, SB)) %>%
+  mutate(SB = ifelse(min3B <= 85, 1, SB)) %>% # if runner ran to third base, then they were safe at second, so it is a stolen base
   filter(rDist3B >= 85,
          event_code.x != "end of play") %>%
   select(game_str, play_id, timestamp, start_time, timediff, cat_x, cat_y, f2B_x, f2B_y, fSS_x, fSS_y, r1B_x, r1B_y, 
-         rDist2B, ball_x, ball_y, ball_z, ballDist2B, event_code.x, positionEvent.x, SB) %>%
-  rename(event = event_code.x, 
-         playerAct = positionEvent.x)
+         rDist2B, ball_x, ball_y, ball_z, ballDist2B, event_code.x, positionEvent.x, SB) %>% # simplifying down to essentials
+  rename(event = event_code.x, # event of the play
+         playerAct = positionEvent.x) # player making action on the play
 
 
 
 
 
 library(ggplot2)
+
+# some personal visuals for sanity checking and data exploration
 
 ggplot(new4, aes(rDist2B, ballDist2B, z = SB)) +
   stat_summary_hex() +
@@ -487,18 +490,18 @@ new4 %>%
 
 
 
-rec = SBdata %>%
-  mutate(recTime = ifelse(event == "ball acquired" & playerAct == "C", timestamp, NA),
-         catThrowTime = ifelse(event == "throw (ball-in-play)" & playerAct == "C", timestamp, NA), 
-         rec2Btime = ifelse(event == "ball acquired" & playerAct %in% c("2B", "SS", "3B"), timestamp, NA)) %>%
+rec = SBdata %>%  # data frame for more feature engineering
+  mutate(recTime = ifelse(event == "ball acquired" & playerAct == "C", timestamp, NA), # time when the catcher receives the ball
+         catThrowTime = ifelse(event == "throw (ball-in-play)" & playerAct == "C", timestamp, NA), # time when catcher throws ball
+         rec2Btime = ifelse(event == "ball acquired" & playerAct %in% c("2B", "SS", "3B"), timestamp, NA)) %>% # time when middle infielder receives the ball
   group_by(game_str, play_id) %>%
-  mutate(recCtime = mean(recTime, na.rm = T),
+  mutate(recCtime = mean(recTime, na.rm = T), # putting time in for each play
          rec2Btime = mean(rec2Btime, na.rm = T),
          catThrTime = mean(catThrowTime, na.rm = T),
-         popTime = rec2Btime - recCtime,
-         exchange = catThrTime - recCtime,
-         timeToPlate = recCtime - start_time, 
-         timeOfThrow = rec2Btime - catThrTime)
+         popTime = rec2Btime - recCtime, # calculating catcher's total poptime
+         exchange = catThrTime - recCtime, # calculating catcher's exchange time
+         timeToPlate = recCtime - start_time, # calculating the pitcher's time from releasing ball to catcher catching it
+         timeOfThrow = rec2Btime - catThrTime) # calculating time it takes for ball to travel to middle infielder from catcher
 
 
 ggplot(rec, aes(popTime, SB)) +
@@ -540,12 +543,12 @@ write.csv(rec, file = "SBdataPop.csv")
 
 
 
-rec2 = rec %>%
-  mutate(currSpeed = ifelse(lag(game_str) == game_str & lag(play_id) == play_id, 1000 *(lag(rDist2B) - rDist2B) / (timestamp - lag(timestamp)), NA),
-         leadoff = ifelse(event == "pitch", sqrt((63.64 - r1B_x)^2 + (63.64 - r1B_y)^2), NA)) %>%
+rec2 = rec %>% # runner feature engineering
+  mutate(currSpeed = ifelse(lag(game_str) == game_str & lag(play_id) == play_id, 1000 *(lag(rDist2B) - rDist2B) / (timestamp - lag(timestamp)), NA), # the current speed of the runner based off of the location tracked and how long it took for them to get there
+         leadoff = ifelse(event == "pitch", sqrt((63.64 - r1B_x)^2 + (63.64 - r1B_y)^2), NA)) %>% # distance from first base
   group_by(game_str, play_id) %>%
-  mutate(maxSpeed = max(currSpeed, na.rm = T),
-         leadoff = mean(leadoff, na.rm = T))
+  mutate(maxSpeed = max(currSpeed, na.rm = T), # getting max sprint speed on each play by taking the runner's maximum speed on the play
+         leadoff = mean(leadoff, na.rm = T)) # putting leadoff for each play
 
 
 
@@ -563,11 +566,11 @@ add %>%
 
 
 
-simple = rec2 %>%
+simple = rec2 %>% # simple dataframe to input to model
   select(game_str, play_id, timestamp, timediff, playerAct, event, SB, popTime, exchange, timeOfThrow, timeToPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z)
 
 
-indiv = simple %>%
+indiv = simple %>% # checking plays
   group_by(game_str, play_id) %>%
   summarise(SB = mean(SB, na.rm = T))
 
