@@ -95,7 +95,7 @@ ct = catcher_throw_data %>%
 folds = vfold_cv(ct, v = 55)
 
 glm =
-  logistic_reg(penalty = .01) %>%
+  logistic_reg(penalty = .06) %>%
   set_engine("glmnet")
 
 
@@ -135,7 +135,7 @@ reactable(preds, filterable = TRUE)
 
 ```{r}
 fb = fielder_data %>% 
-  select(-c(game_str, play_id, leadoff))
+  select(-c(game_str, play_id, leadoff, maxSpeed))
 
 
 
