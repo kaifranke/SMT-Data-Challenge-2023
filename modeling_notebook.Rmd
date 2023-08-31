@@ -1,0 +1,214 @@
+---
+title: "modeling_notebook"
+author: "Jack Rogers"
+date: "2023-08-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidymodels)
+library(tidyverse)
+library(reactable)
+```
+
+## Split Into 4 Stages
+
+#### Initial Stage
+
+```{r}
+p_model = pitcher_data %>%
+  dplyr::select(SB, maxSpeed)
+
+t_model = glm(SB ~ maxSpeed, data = p_model, family = "binomial")
+
+summary(t_model)
+
+t_model
+```
+
+```{r}
+pitcher_data$predicted_SB <- predict(t_model, newdata = p_model, type = "response")
+
+p1 = pitcher_data %>% filter(game_str == "1903_31_TeamNB_TeamA1")
+
+reactable(pitcher_data, filterable = TRUE)
+```
+
+
+
+## On Catch
+
+
+
+```{r, echo=FALSE}
+oc = on_catch_data %>%
+  dplyr::select(-c(game_str, play_id, exchange, timeOfThrow)) 
+
+folds = vfold_cv(oc, v = 55)
+
+glm =
+  logistic_reg(penalty = .06) %>%
+  set_engine("glmnet")
+
+
+glm_wf =
+  workflow() %>%
+  add_model(glm) %>%
+  add_formula(SB ~ .)
+
+set.seed(1)
+
+ex = glm_wf %>%
+  fit_resamples(folds, metrics =  metric_set(mn_log_loss))
+
+print(collect_metrics(ex))
+
+fit = glm_wf %>%
+  fit(oc)
+
+print(fit %>% tidy)
+
+```
+
+
+
+```{r}
+
+preds = predict(fit, type = 'prob', new_data = oc) %>%
+  bind_cols(on_catch_data)
+
+p2 = preds %>% filter(game_str == "1903_31_TeamNB_TeamA1")
+#exchange isn't used in model but shown here
+
+reactable(preds, filterable = TRUE)
+```
+
+#throw
+
+
+```{r}
+ct = catcher_throw_data %>%
+  dplyr::select(-c(game_str, play_id, leadoff))
+
+folds = vfold_cv(ct, v = 55)
+
+glm =
+  logistic_reg(penalty = .01) %>%
+  set_engine("glmnet")
+
+
+glm_wf =
+  workflow() %>%
+  add_model(glm) %>%
+  add_formula(SB ~ .)
+
+set.seed(1)
+
+ex = glm_wf %>%
+  fit_resamples(folds, metrics =  metric_set(mn_log_loss))
+
+print(collect_metrics(ex))
+
+
+```
+
+
+
+```{r}
+fit = glm_wf %>%
+  fit(ct)
+
+print(fit %>% tidy())
+
+preds = predict(fit, type = 'prob', new_data = ct) %>%
+  bind_cols(catcher_throw_data)
+
+#exchange isn't used in model but shown here
+
+reactable(preds, filterable = TRUE)
+
+
+```
+
+
+```{r}
+fb = fielder_data %>% 
+  select(-c(game_str, play_id, leadoff))
+
+
+
+train = fb
+
+folds = vfold_cv(train, v = 58)
+
+glm =
+  logistic_reg(penalty = .005) %>%
+  set_engine("glmnet")
+
+
+glm_wf =
+  workflow() %>%
+  add_model(glm) %>%
+  add_formula(SB ~ .)
+
+set.seed(1)
+
+ex = glm_wf %>%
+  fit_resamples(folds, metrics =  metric_set(mn_log_loss))
+
+collect_metrics(ex)
+
+fit = glm_wf %>%
+  fit(train)
+
+preds = predict(fit, type = 'prob', new_data = train) %>%
+  bind_cols(fielder_data)
+
+fit %>% tidy()
+
+```
+
+
+
+
+```{r}
+tidy_results <- tidy(fit$fit$glmnet.fit)
+
+# Convert the sparse matrix to a data frame
+coeff_df <- as.data.frame(tidy_results$coef)
+
+# Add the variable names as a column
+coeff_df$variable <- rownames(coeff_df)
+
+# Plot the coefficient values
+ggplot(coeff_df, aes(x = reorder(variable, -abs(estimate)), y = estimate)) +
+  geom_bar(stat = "identity", fill = "dodgerblue", width = 0.5) +
+  coord_flip() +
+  labs(title = "Coefficient Plot",
+       x = "Variable",
+       y = "Coefficient Estimate") +
+  theme_minimal()
+```
+
+
+
+
+
+``` {r}
+reactable(preds, filterable = TRUE)
+
+```
+
+
+```{r}
+p3 = preds %>% filter(game_str == "1903_31_TeamNB_TeamA1")
+p4 = preds %>% filter(game_str == "1903_31_TeamNB_TeamA1")
+
+t1 = rbind(p2, p3)
+tf = rbind(t1, p4)
+
+write.csv(tf, "explay.csv")
+```
+
