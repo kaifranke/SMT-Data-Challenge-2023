@@ -30,7 +30,7 @@ locations <- read_csv("SBmove.csv") %>%
 key_moments <- read_csv("SBsimple.csv") %>%
   merge(locations, by = c('game_str', 'play_id', 'timestamp'))
 
-# Function for Social Media tags
+# Function for Social Media tags - dropdownMenuCustom
 # Reference: mine-cetinkaya-rundel 
 # Reference: on Github: https://github.com/rstudio/shiny-gallery/blob/master/nz-trade-dash/helper_funs.R 2172-2212
 dropdownMenuCustom <- function (..., type = c("messages", "notifications", "tasks"), 
@@ -115,29 +115,7 @@ header <- dashboardHeader(
                       
   ))
   
-  
-  # Title and theme
-  # div(style = "border-style: solid; border-color: black; background-color: #adceff;",
-  # titlePanel(
-  #   h1("Evaluating Player Relationships in Stolen Base Defense", align = "center", style = "font-family: 'Times', serif; font-weight: 1000px; font-size: 50px; text-shadow: 3px 3px 3px #aaa; line-height: 1; color:black"),
-  # ),
-  # titlePanel(
-  #   h6("SMT 2023 Data Challenge", align = "center", style = "font-family: 'Times', serif; font-weight: 1000px; font-size: 20px; line-height: 1; color:black"),
-  # )),
-  # theme = shinythemes::shinytheme("journal"),
-  
-  
-  # Setting the background color to cream here
-  # setBackgroundColor(
-  #   color = c("navajowhite"),
-  #   shinydashboard = FALSE
-  # ),
-  
-  # First tab is where we allow the user to play with the parameters to determine SB %
-  # Left out exchange/timeToThrow here because it's the same as popTime
-  # Also left out y-coordinate in data (depth), but should probably add that in (but is hard to visualize)
-  # Finally, also left out rDist2B
-
+# Adds SMT CMSAC logo and link
 header$children[[2]]$children[[2]] <- header$children[[2]]$children[[1]]
 header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cmsac/conference/2023/#:~:text=Undergraduate%20Division%20Finalists',
                                              imageOutput('image', height = "2px", width = "10%"),
@@ -148,37 +126,31 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
     sidebarMenu(
       id = 'sidebar',
       style = "position: relative; overflow: visible;",
-      #style = "position: relative; overflow: visible; overflow-y:scroll",
-      #style = 'height: 90vh; overflow-y: auto;',
-      ## 1st tab show the Main dashboard -----------
+      ## 1st tab show the Main dashboard of the 4 models
       menuItem( "Testing Scenarios", tabName = 'testing_scenarios', icon = icon('dashboard'), startExpanded = T,
                 menuSubItem('Pitch Release', tabName = "pitch_release"),
                 menuSubItem('Catcher Retrieval', tabName = "catcher_retrieval"),
                 menuSubItem('Catcher Release', tabName = "catcher_release"),
                 menuSubItem('Middle Infielder Retrieval', tabName = "middle_infielder_retrieval")),
-      
-      #useShinyjs(),
-      
-      ## give sidebar inputs a id so that it can be manipulated by css
+
+      ## provide sidebar inputs for 1st model
       div( id = 'sidebar_pitch_release',
            conditionalPanel("input.sidebar === 'pitch_release'",
                                                         
-                            ## radio buttons to ask user to choose prebuilt commodity groups or build their owns
                             sliderInput("maxSpeed1",
                                         "Max Spd (ft/sec):",
                                         min = 20,
                                         max = 30,
                                         value = 28.5,
                                         step = 0.05
-                            )
-                                        
+                            )              
       )),
-      
+
+      ## provide sidebar inputs for 2nd model
       div( id = 'sidebar_catcher_retrieval',
            conditionalPanel("input.sidebar === 'catcher_retrieval'",
                             
-                            ## radio buttons to ask user to choose prebuilt commodity groups or build their owns
-                            sliderInput("timeToPlate2",
+                           sliderInput("timeToPlate2",
                                         "Time to Plate (sec):",
                                         min = 0.4,
                                         max = 0.6,
@@ -204,16 +176,13 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                                         min = 0,
                                         max = 4.5,
                                         value = 1.02,
-                                        step = 0.01)
-                            
-                            
-                            
+                                        step = 0.01)           
            )),
-      
+
+      ## provide sidebar inputs for 3rd model
       div( id = 'sidebar_catcher_release',
            conditionalPanel("input.sidebar === 'catcher_release'",
                             
-                            ## radio buttons to ask user to choose prebuilt commodity groups or build their owns
                             sliderInput("exchange3",
                                         "Exchange (sec):",
                                         min = 0.5,
@@ -240,14 +209,13 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                                         min = 4,
                                         max = 7,
                                         value = 5.97,
-                                        step = 0.01)
-                            
+                                        step = 0.01)           
            )),
-      
+
+      ## provide sidebar inputs for 4th model
       div( id = 'sidebar_middle_infielder_retrieval',
            conditionalPanel("input.sidebar === 'middle_infielder_retrieval'",
                             
-                            ## radio buttons to ask user to choose prebuilt commodity groups or build their owns
                             checkboxInput('SB4', 'SB Occurred', FALSE), 
                             sliderInput("timeOfThrow4",
                                         "Time of Throw (sec):",
@@ -282,29 +250,13 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                                         min = -5,
                                         max = 5,
                                         value = 1,
-                                        step = 0.1)
-                            
-                                   
+                                        step = 0.1)      
            )),
       
-      
-      ## add conditional panel to show more
-      # conditionalPanel( "input.sidebar === 'dashboard'",
-      #                   actionButton("btn_show_more",
-      #                                paste0(' Show more details'),
-      #                                icon = icon('chevron-circle-down'),
-      #                                style='padding-top:0px; padding-bottom:0px;padding-left:3px;padding-right:3px; '
-      #                                ) 
-      #                   ),
-      
-      
-      ## 4th tab HS finder -------------------------
-      #menuItem("HS code finder", tabName = 'hs_finder', icon = icon('search') ),
-      
-      ## 5th tab Data source, definition , i.e., help ---------------
+
+      # 2nd tab is for animated plays
       menuItem( "Animated Plays", tabName = 'animation', icon = icon('video')),
-      
-      
+     
       # Animation Inputs
       div( id = 'sidebar_animation',
            conditionalPanel("input.sidebar === 'animation'",
@@ -319,14 +271,13 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                                         'Pick the Play From that Game:',
                                         choices = unique(locations$play_id))
            ))
-      
- 
     )
   )
   
   
   body <- dashboardBody(
     tabItems(
+      # 1st model
       tabItem(tabName = "pitch_release",
           fluidRow(
             # Filler so Black box does not extend entire length
@@ -408,11 +359,9 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                        h5(textOutput("OutputTotalFielder1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
                    )
             )
-            
-          )  
-              
+          )     
       ),
-      
+      # 2nd model
       tabItem(tabName = "catcher_retrieval",
               fluidRow(
                 # Filler so Black box does not extend entire length
@@ -509,9 +458,8 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                        plotOutput('EditBallLocation2', height = 300, width = 250)
                 ),
               )  
-              
       ),
-      
+      # 3rd model
       tabItem(tabName = "catcher_release",
               fluidRow(
                 # Filler so Black box does not extend entire length
@@ -608,12 +556,10 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                        br(),
                        h4(strong("Catcher Throw Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
                        plotOutput('EditBallLocation3', height = 300, width = 200)
-                ),
-                
+                )
               )
-              
       ),
-      
+      # 4th model
       tabItem(tabName = "middle_infielder_retrieval",
               fluidRow(
                 # Filler so Black box does not extend entire length
@@ -724,7 +670,7 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                 )
               )
       ),
-      
+      # 2nd tab - Animation
       tabItem(tabName = "animation",
               fluidRow(
                 # Filler
@@ -782,13 +728,8 @@ header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cm
                        br(),
                        h5("**Disclaimer: Some plays have missing data points and will jump around or end early", align = "left", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 15px; line-height: 1; color:black;")
                 )
-                
               )  
-              
       )
-      
-      
-      
     )
   )
 
@@ -797,19 +738,16 @@ ui <- dashboardPage(header, sidebar, body)
   
   
 server <- function(input, output, session) {
-  
-  # Credit to Posit Community
-  # Visit https://community.rstudio.com/t/update-scatter-in-plotly-by-dragging-shapes-shiny/44809
-  # for more information
 
+  # Image for SMT SMSAC banner
   output$image <- renderImage({
     list(src = "smt_banner_20_1_25.png",
          alt = "This is alternate text"
     )
   }, deleteFile = FALSE)
+
   
   # Update Choices for the Animated Play based on SB
-  
   observe({
     x <- as.numeric(input$SB)
     new_options <- filter(locations, SB == x)
@@ -822,9 +760,7 @@ server <- function(input, output, session) {
   })
   
   
-  
   # Update Choices for the Animated Play based on SB and Game
-  
   observe({
     x <- input$game
     y <- as.numeric(input$SB)
@@ -851,7 +787,6 @@ server <- function(input, output, session) {
     }
     
     stolenBase
-    
   })
   
   
@@ -1219,7 +1154,6 @@ server <- function(input, output, session) {
   
   
   
-  
   # For the changing catch depth in 4th model
   ball_location_depth4 = reactive({
     
@@ -1232,8 +1166,7 @@ server <- function(input, output, session) {
   
   # Plot for the catch depth in 4th model
   output$CatchDepth4 = renderPlot({
-    
-    
+
     # dimensions for second base
     df1 <- data.frame(x = c(0, 0.884, 0, -0.884), y = c(0, 0.171, 0.342, 0.171))
     dftop1 <- data.frame(x = c(0, 0.884, 0, -0.884), y = c(0.15, 0.3, 0.39, 0.3))
@@ -1276,8 +1209,7 @@ server <- function(input, output, session) {
   }, bg = "#ECF0F5")
   
   
-  
-  
+
   # For the changing runner 2B distance in 2nd model
   runner_location2 = reactive({
     
@@ -1389,7 +1321,7 @@ server <- function(input, output, session) {
       theme(plot.background = element_rect(fill = "#ECF0F5"))
     
     
-    anim_save("outfile.gif", animate(p)) # New
+    anim_save("outfile.gif", animate(p, nframes = 50)) # New
     
     
     list(src = "outfile.gif",
