@@ -1,6 +1,5 @@
-###################### No comments yet #######################
-######################  Will add later  ######################
-
+## Code for R Shiny Application
+## Isaac Blumhoefer
 
 library(shinydashboard)
 library(rsconnect)
@@ -32,7 +31,7 @@ key_moments <- read_csv("SBsimple.csv") %>%
 
 # Function for Social Media tags - dropdownMenuCustom
 # Reference: mine-cetinkaya-rundel 
-# Reference: on Github: https://github.com/rstudio/shiny-gallery/blob/master/nz-trade-dash/helper_funs.R 2172-2212
+# Reference: on Github: https://github.com/rstudio/shiny-gallery/blob/master/nz-trade-dash/helper_funs.R  2172-2212
 dropdownMenuCustom <- function (..., type = c("messages", "notifications", "tasks"), 
                                 badgeStatus = "primary", icon = NULL, .list = NULL) 
 {
@@ -74,12 +73,13 @@ dropdownMenuCustom <- function (..., type = c("messages", "notifications", "task
   )
 }
 
+# Top bar Header
 header <- dashboardHeader(
   title = h4("Evaluating Player Relationships in Stolen Base Defense   ", align = "right", style = "font-family: 'Times', serif; font-weight: 1000px; font-size: 28px; text-shadow: 1px 1px 1px #aaa; color:white; white-space: pre;"), 
   disable = FALSE,
   titleWidth = 910,
   
-  # Social Media Tags
+  # Social Media Tags using function defined above
   dropdownMenuCustom( type = 'message',
                       icon = icon("share-alt"),
                       messageItem(
@@ -112,626 +112,642 @@ header <- dashboardHeader(
                         icon = icon("linkedin"),
                         href = "https://www.linkedin.com/in/jackson-balch-66a910231/"
                       )
-                      
-  ))
+                    )
+)
   
-# Adds SMT CMSAC logo and link
+# Adds SMT CMSAC logo and link in top left
 header$children[[2]]$children[[2]] <- header$children[[2]]$children[[1]]
 header$children[[2]]$children[[1]] <- tags$a(href = 'https://www.stat.cmu.edu/cmsac/conference/2023/#:~:text=Undergraduate%20Division%20Finalists',
                                              imageOutput('image', height = "2px", width = "10%"),
                                              target = '_blank')
-  
-  sidebar <- dashboardSidebar( 
-    width = 200,
-    sidebarMenu(
-      id = 'sidebar',
-      style = "position: relative; overflow: visible;",
-      ## 1st tab show the Main dashboard of the 4 models
-      menuItem( "Testing Scenarios", tabName = 'testing_scenarios', icon = icon('dashboard'), startExpanded = T,
-                menuSubItem('Pitch Release', tabName = "pitch_release"),
-                menuSubItem('Catcher Retrieval', tabName = "catcher_retrieval"),
-                menuSubItem('Catcher Release', tabName = "catcher_release"),
-                menuSubItem('Middle Infielder Retrieval', tabName = "middle_infielder_retrieval")),
 
-      ## provide sidebar inputs for 1st model
-      div( id = 'sidebar_pitch_release',
-           conditionalPanel("input.sidebar === 'pitch_release'",
-                                                        
-                            sliderInput("maxSpeed1",
-                                        "Max Spd (ft/sec):",
-                                        min = 20,
-                                        max = 30,
-                                        value = 28.5,
-                                        step = 0.05
-                            )              
-      )),
+# sidebar for sliders and selections
+sidebar <- dashboardSidebar( 
+  width = 200,
+  sidebarMenu(
+    id = 'sidebar',
+    style = "position: relative; overflow: visible;",
+    # 1st tab shows the Main dashboard of the 4 models to choose from 
+    menuItem( "Testing Scenarios", tabName = 'testing_scenarios', icon = icon('dashboard'), startExpanded = T,
+              menuSubItem('Pitch Release', tabName = "pitch_release"),
+              menuSubItem('Catcher Retrieval', tabName = "catcher_retrieval"),
+              menuSubItem('Catcher Release', tabName = "catcher_release"),
+              menuSubItem('Middle Infielder Retrieval', tabName = "middle_infielder_retrieval")),
 
-      ## provide sidebar inputs for 2nd model
-      div( id = 'sidebar_catcher_retrieval',
-           conditionalPanel("input.sidebar === 'catcher_retrieval'",
-                            
-                           sliderInput("timeToPlate2",
-                                        "Time to Plate (sec):",
-                                        min = 0.4,
-                                        max = 0.6,
-                                        value = 0.5,
-                                        step = 0.01)
-                            ,
-                            sliderInput("leadoff2",
-                                        "Lead off of First (ft):",
-                                        min = 10,
-                                        max = 30,
-                                        value = 17.8,
-                                        step = 0.1)
-                            ,
-                            sliderInput("x_coordinate2",
-                                        "Horizontal Pitch Location (ft):",
-                                        min = -2,
-                                        max = 2,
-                                        value = -1.32,
-                                        step = 0.01)
-                            ,
-                            sliderInput("y_coordinate2",
-                                        "Vertical Pitch Location (ft):",
-                                        min = 0,
-                                        max = 4.5,
-                                        value = 1.02,
-                                        step = 0.01)           
-           )),
+    # provide sidebar inputs for 1st model
+    # Note: Min and Max values are set to realistic baseball ranges
+    # Note: Initial values are chosen to match game situation in our paper and slideshow
+    div( id = 'sidebar_pitch_release',
+         conditionalPanel("input.sidebar === 'pitch_release'",
+                                                      
+                          sliderInput("maxSpeed1",
+                                      "Max Spd (ft/sec):",
+                                      min = 20,
+                                      max = 30,
+                                      value = 28.5,
+                                      step = 0.05
+                          )              
+        )
+    ),
 
-      ## provide sidebar inputs for 3rd model
-      div( id = 'sidebar_catcher_release',
-           conditionalPanel("input.sidebar === 'catcher_release'",
-                            
-                            sliderInput("exchange3",
-                                        "Exchange (sec):",
-                                        min = 0.5,
-                                        max = 1.5,
-                                        value = 0.8,
-                                        step = 0.01)
-                            ,
-                            sliderInput("rDist3",
-                                        "Distance to 2nd (ft):",
-                                        min = 30,
-                                        max = 60,
-                                        value = 44.2,
-                                        step = 0.1)
-                            ,
-                            sliderInput("x_coordinate3",
-                                        "Horizontal Throw Location (ft):",
-                                        min = -3,
-                                        max = 3,
-                                        value = -0.02,
-                                        step = 0.01)
-                            ,
-                            sliderInput("y_coordinate3",
-                                        "Vertical Throw Location (ft):",
-                                        min = 4,
-                                        max = 7,
-                                        value = 5.97,
-                                        step = 0.01)           
-           )),
+    # provide sidebar inputs for 2nd model
+    div( id = 'sidebar_catcher_retrieval',
+         conditionalPanel("input.sidebar === 'catcher_retrieval'",
+                          
+                         sliderInput("timeToPlate2",
+                                      "Time to Plate (sec):",
+                                      min = 0.4,
+                                      max = 0.6,
+                                      value = 0.5,
+                                      step = 0.01)
+                          ,
+                          sliderInput("leadoff2",
+                                      "Lead off of First (ft):",
+                                      min = 10,
+                                      max = 30,
+                                      value = 17.8,
+                                      step = 0.1)
+                          ,
+                          sliderInput("x_coordinate2",
+                                      "Horizontal Pitch Location (ft):",
+                                      min = -2,
+                                      max = 2,
+                                      value = -1.32,
+                                      step = 0.01)
+                          ,
+                          sliderInput("y_coordinate2",
+                                      "Vertical Pitch Location (ft):",
+                                      min = 0,
+                                      max = 4.5,
+                                      value = 1.02,
+                                      step = 0.01)           
+         )
+       ),
 
-      ## provide sidebar inputs for 4th model
-      div( id = 'sidebar_middle_infielder_retrieval',
-           conditionalPanel("input.sidebar === 'middle_infielder_retrieval'",
-                            
-                            checkboxInput('SB4', 'SB Occurred', FALSE), 
-                            sliderInput("timeOfThrow4",
-                                        "Time of Throw (sec):",
-                                        min = 0.8,
-                                        max = 2,
-                                        value = 1.2,
-                                        step = 0.01)
-                            ,
-                            sliderInput("rDist4",
-                                        "Distance to 2nd (ft):",
-                                        min = 0,
-                                        max = 16,
-                                        value = 9.8,
-                                        step = 0.1)
-                            ,
-                            sliderInput("x_coordinate4",
-                                        "Horizontal Catch Location (ft):",
-                                        min = -5,
-                                        max = 5,
-                                        value = 4.43,
-                                        step = 0.01)
-                            ,
-                            sliderInput("y_coordinate4",
-                                        "Vertical Catch Location (ft):",
-                                        min = -0.25,
-                                        max = 7,
-                                        value = -0.19,
-                                        step = 0.01)
-                            ,
-                            sliderInput("depth4",
-                                        HTML("Infielder Catch Depth <br/> (0 = 2nd Base middle):"),
-                                        min = -5,
-                                        max = 5,
-                                        value = 1,
-                                        step = 0.1)      
-           )),
-      
+    # provide sidebar inputs for 3rd model
+    div( id = 'sidebar_catcher_release',
+         conditionalPanel("input.sidebar === 'catcher_release'",
+                          
+                          sliderInput("exchange3",
+                                      "Exchange (sec):",
+                                      min = 0.5,
+                                      max = 1.5,
+                                      value = 0.8,
+                                      step = 0.01)
+                          ,
+                          sliderInput("rDist3",
+                                      "Distance to 2nd (ft):",
+                                      min = 30,
+                                      max = 60,
+                                      value = 44.2,
+                                      step = 0.1)
+                          ,
+                          sliderInput("x_coordinate3",
+                                      "Horizontal Throw Location (ft):",
+                                      min = -3,
+                                      max = 3,
+                                      value = -0.02,
+                                      step = 0.01)
+                          ,
+                          sliderInput("y_coordinate3",
+                                      "Vertical Throw Location (ft):",
+                                      min = 4,
+                                      max = 7,
+                                      value = 5.97,
+                                      step = 0.01)           
+         )
+       ),
 
-      # 2nd tab is for animated plays
-      menuItem( "Animated Plays", tabName = 'animation', icon = icon('video')),
-     
-      # Animation Inputs
-      div( id = 'sidebar_animation',
-           conditionalPanel("input.sidebar === 'animation'",
-                            
-                            checkboxInput('SB', 'SB Occurred', FALSE)
-                            ,
-                            selectInput('game',
-                                        'Pick the Game:',
-                                        choices = unique(locations$game_str))
-                            ,
-                            selectInput('play',
-                                        'Pick the Play From that Game:',
-                                        choices = unique(locations$play_id))
-           ))
-    )
+    # provide sidebar inputs for 4th model
+    div( id = 'sidebar_middle_infielder_retrieval',
+         conditionalPanel("input.sidebar === 'middle_infielder_retrieval'",
+                          
+                          checkboxInput('SB4', 'SB Occurred', FALSE), 
+                          sliderInput("timeOfThrow4",
+                                      "Time of Throw (sec):",
+                                      min = 0.8,
+                                      max = 2,
+                                      value = 1.2,
+                                      step = 0.01)
+                          ,
+                          sliderInput("rDist4",
+                                      "Distance to 2nd (ft):",
+                                      min = 0,
+                                      max = 16,
+                                      value = 9.8,
+                                      step = 0.1)
+                          ,
+                          sliderInput("x_coordinate4",
+                                      "Horizontal Catch Location (ft):",
+                                      min = -5,
+                                      max = 5,
+                                      value = 4.43,
+                                      step = 0.01)
+                          ,
+                          sliderInput("y_coordinate4",
+                                      "Vertical Catch Location (ft):",
+                                      min = -0.25,
+                                      max = 7,
+                                      value = -0.19,
+                                      step = 0.01)
+                          ,
+                          sliderInput("depth4",
+                                      HTML("Infielder Catch Depth <br/> (0 = 2nd Base middle):"),
+                                      min = -5,
+                                      max = 5,
+                                      value = 1,
+                                      step = 0.1)      
+         )
+       ),
+    
+
+    # 2nd tab is for animated plays
+    menuItem( "Animated Plays", tabName = 'animation', icon = icon('video')),
+   
+    # Animation Inputs
+    div( id = 'sidebar_animation',
+         conditionalPanel("input.sidebar === 'animation'",
+                          
+                          checkboxInput('SB', 'SB Occurred', FALSE)
+                          ,
+                          selectInput('game',
+                                      'Pick the Game:',
+                                      choices = unique(locations$game_str))
+                          ,
+                          selectInput('play',
+                                      'Pick the Play From that Game:',
+                                      choices = unique(locations$play_id))
+         )
+       )
   )
-  
-  
-  body <- dashboardBody(
-    tabItems(
-      # 1st model
-      tabItem(tabName = "pitch_release",
-          fluidRow(
-            # Filler so Black box does not extend entire length
-            column(1),
-            # The final SB probablity
-            column(4, align = "center",
-                   br(),
-                   div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
-                       h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
-                       br(),
-                       h5(textOutput("modelOutput1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
+)
+
+
+# Main body of application where plots and analysis are shown
+body <- dashboardBody(
+  tabItems(
+    # 1st model
+    tabItem(tabName = "pitch_release",
+        fluidRow(
+          # Filler so Black box does not extend entire length
+          column(1),
+          # The final SB probablity
+          column(4, align = "center",
+                 br(),
+                 # Adding Black outline for visual purposes
+                 div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
+                     h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
+                     br(),
+                     h5(textOutput("modelOutput1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          ),
+          # Filler so Black box does not extend entire length
+          column(1),
+          # Pitcher Outs Gained
+          column(2, align = "center",
+                 # Setting a consistent height - Will use frequently in future
+                 div(style = "height:68px"),
+                 # Adding Black outline  again for visual purposes - Will use frequently in future in this style of code
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          ),
+          # Catcher Outs Gained
+          column(2, align = "center",
+                 h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
+                 # Another consistent height I will use frequently in future
+                 div(style = "height:13px"),
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          ),
+          # Infielder Outs Gained
+          column(2, align = "center",
+                 div(style = "height:68px"),
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 ),
+          ),
+          # Max Speed Numerical Display
+          column(6, align = "center",
+                 div(style = "height:68px"),
+                 h4(strong("Max Speed"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                 br(),
+                 h5(textOutput("maxSpeed1"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
+          ),
+          # Total Pitcher Outs Gained (all models combined)
+          column(2, align = "center",
+                 br(),
+                 div(style = "height:68px"),
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5(textOutput("modelOutput2Pitcher1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          ),
+          # Total Catcher Outs Gained (all models combined)
+          column(2, align = "center",
+                 br(),
+                 h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
+                 div(style = "height:13px"),
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5(textOutput("OutputTotalCatcher1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          ),
+          # Total Infielder Outs Gained (all models combined)
+          column(2, align = "center",
+                 br(),
+                 div(style = "height:68px"),
+                 div(style = "border-style: solid; border-color: black; border-width: thin",
+                     h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                     br(),
+                     h5(textOutput("OutputTotalFielder1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                 )
+          )
+        )     
+    ),
+    # 2nd model
+    tabItem(tabName = "catcher_retrieval",
+            fluidRow(
+              # Filler so Black box does not extend entire length
+              column(1),
+              # The final SB probablity
+              column(4, align = "center",
+                     br(),
+                     div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
+                         h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
+                         br(),
+                         h5(textOutput("modelOutput2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Filler so Black box does not extend entire length
+              column(1),
+              # Pitcher Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput2Pitcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Catcher Outs Gained
+              column(2, align = "center",
+                     h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Infielder Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     ),
+              ),
+              # Time to Plate Numerical Display
+              column(6, align = "center",
+                     div(style = "height:68px"),
+                     h4(strong("Time to Plate"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     br(),
+                     h5(textOutput("timeToPlate2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
+              ),
+              # Total Pitcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput2Pitcher2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Catcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalCatcher2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Infielder Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalFielder2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # The field with a movable player's lead
+              column(3, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     plotOutput('EditLead2', height = 300, width = 300)
+              ),
+              # Pitch Location Plot
+              column(3, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Pitch Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     plotOutput('EditBallLocation2', height = 300, width = 250)
+              ),
+            )  
+    ),
+    # 3rd model
+    tabItem(tabName = "catcher_release",
+            fluidRow(
+              # Filler so Black box does not extend entire length
+              column(1),
+              # The final SB probablity
+              column(4, align = "center",
+                     br(),
+                     div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
+                         h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
+                         br(),
+                         h5(textOutput("modelOutput3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Filler so Black box does not extend entire length
+              column(1),
+              # Pitcher Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Catcher Outs Gained
+              column(2, align = "center",
+                     h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput3Catcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Infielder Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     ),
+              ),
             ),
-            # Filler so Black box does not extend entire length
-            column(1),
-            # Pitcher Outs Gained
-            column(2, align = "center",
-                   div(style = "height:68px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
-            ),
-            # Catcher Outs Gained
-            column(2, align = "center",
-                   h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
-                   div(style = "height:13px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
-            ),
-            # Infielder Outs Gained
-            column(2, align = "center",
-                   div(style = "height:68px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   ),
-            ),
-            # Max Speed
-            column(6, align = "center",
-                   div(style = "height:68px"),
-                   h4(strong("Max Speed"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                   br(),
-                   h5(textOutput("maxSpeed1"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
-            ),
-            # Total Pitcher Outs Gained
-            column(2, align = "center",
-                   br(),
-                   div(style = "height:68px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5(textOutput("modelOutput2Pitcher1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
-            ),
-            # Total Catcher Outs Gained
-            column(2, align = "center",
-                   br(),
-                   h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
-                   div(style = "height:13px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5(textOutput("OutputTotalCatcher1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
-            ),
-            # Total Infielder Outs Gained
-            column(2, align = "center",
-                   br(),
-                   div(style = "height:68px"),
-                   div(style = "border-style: solid; border-color: black; border-width: thin",
-                       h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                       br(),
-                       h5(textOutput("OutputTotalFielder1"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                   )
+            fluidRow(
+              # Exchange Numerical Display
+              column(6, align = "center",
+                     div(style = "height:68px"),
+                     h4(strong("Exchange Time"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     br(),
+                     h5(textOutput("exchange3"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
+              ),
+              # Total Pitcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput2Pitcher3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Catcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalCatcher3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Infielder Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalFielder3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Distance to 2nd Baseball Field Plot
+              column(3, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     plotOutput('EditLead3', height = 300, width = 300)
+              ),
+              # Throw Location Plot
+              column(3, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Catcher Throw Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     plotOutput('EditBallLocation3', height = 300, width = 200)
+              )
             )
-          )     
-      ),
-      # 2nd model
-      tabItem(tabName = "catcher_retrieval",
-              fluidRow(
-                # Filler so Black box does not extend entire length
-                column(1),
-                # The final SB probablity
-                column(4, align = "center",
-                       br(),
-                       div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
-                           h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
-                           br(),
-                           h5(textOutput("modelOutput2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Filler so Black box does not extend entire length
-                column(1),
-                # Pitcher Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput2Pitcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Catcher Outs Gained
-                column(2, align = "center",
-                       h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Infielder Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       ),
-                ),
-                # Time to Plate
-                column(6, align = "center",
-                       div(style = "height:68px"),
-                       h4(strong("Time to Plate"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       br(),
-                       h5(textOutput("timeToPlate2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
-                ),
-                # Total Pitcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput2Pitcher2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Catcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalCatcher2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Infielder Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalFielder2"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # The field with a movable player's lead
-                column(3, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       plotOutput('EditLead2', height = 300, width = 300)
-                ),
-                # Pitch Location
-                column(3, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Pitch Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       plotOutput('EditBallLocation2', height = 300, width = 250)
-                ),
-              )  
-      ),
-      # 3rd model
-      tabItem(tabName = "catcher_release",
-              fluidRow(
-                # Filler so Black box does not extend entire length
-                column(1),
-                # The final SB probablity
-                column(4, align = "center",
-                       br(),
-                       div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
-                           h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
-                           br(),
-                           h5(textOutput("modelOutput3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Filler so Black box does not extend entire length
-                column(1),
-                # Pitcher Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Catcher Outs Gained
-                column(2, align = "center",
-                       h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput3Catcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Infielder Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       ),
-                ),
+    ),
+    # 4th model
+    tabItem(tabName = "middle_infielder_retrieval",
+            fluidRow(
+              # Filler so Black box does not extend entire length
+              column(1),
+              # The final SB probablity
+              column(4, align = "center",
+                     br(),
+                     div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
+                         h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
+                         br(),
+                         h5(textOutput("modelOutput4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
               ),
-              fluidRow(
-                # Exchange
-                column(6, align = "center",
-                       div(style = "height:68px"),
-                       h4(strong("Exchange Time"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       br(),
-                       h5(textOutput("exchange3"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
-                ),
-                # Total Pitcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput2Pitcher3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Catcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalCatcher3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Infielder Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalFielder3"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Distance to 2nd
-                column(3, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       plotOutput('EditLead3', height = 300, width = 300)
-                ),
-                # Throw Location
-                column(3, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Catcher Throw Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       plotOutput('EditBallLocation3', height = 300, width = 200)
-                )
+              # Filler so Black box does not extend entire length
+              column(1),
+              # Pitcher Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Catcher Outs Gained
+              column(2, align = "center",
+                     h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput4Catcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Infielder Outs Gained
+              column(2, align = "center",
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput4Infielder"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     ),
               )
-      ),
-      # 4th model
-      tabItem(tabName = "middle_infielder_retrieval",
-              fluidRow(
-                # Filler so Black box does not extend entire length
-                column(1),
-                # The final SB probablity
-                column(4, align = "center",
-                       br(),
-                       div(style = "border-style: solid; border-color: black; border-width: thick; background: Gainsboro",
-                           h4(strong("SB Probability"), align = "center", style = "font-family: 'Times', serif; font-weight: 900; font-size: 50px; line-height: 1; color:black;"),
-                           br(),
-                           h5(textOutput("modelOutput4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 50px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Filler so Black box does not extend entire length
-                column(1),
-                # Pitcher Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5("--", align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Catcher Outs Gained
-                column(2, align = "center",
-                       h4(strong("Outs This Play"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:DimGray;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput4Catcher"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Infielder Outs Gained
-                column(2, align = "center",
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput4Infielder"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       ),
-                )
+            ),
+            fluidRow(
+              # Time of Throw Numerical Display
+              column(6, align = "center",
+                     div(style = "height:68px"),
+                     h4(strong("Time of Throw"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     br(),
+                     h5(textOutput("timeOfThrow4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
               ),
-              fluidRow(
-                # Time of Throw
-                column(6, align = "center",
-                       div(style = "height:68px"),
-                       h4(strong("Time of Throw"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       br(),
-                       h5(textOutput("timeOfThrow4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 40px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:red;")
-                ),
-                # Total Pitcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("modelOutput2Pitcher4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Catcher Outs Gained
-                column(2, align = "center",
-                       br(),
-                       h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
-                       div(style = "height:13px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalCatcher4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                # Total Infielder Outs Gained
-                column(2, align = "center",
-                       br(),
-                       div(style = "height:68px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thin",
-                           h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
-                           br(),
-                           h5(textOutput("OutputTotalFielder4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                )
+              # Total Pitcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Pitcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("modelOutput2Pitcher4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
               ),
-              fluidRow(
-                # The field with a movable player's lead
-                column(4, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       plotOutput('EditLead4', height = 300, width = 300)
-                ),
-                # Catch Location
-                column(4, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Fielder Catch Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       h4("(Home Plate View)", align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 18px; line-height: 1; color:black;"),
-                       plotOutput('EditBallLocation4', height = 300, width = 400)
-                ),
-                # Catch Depth
-                column(4, align = "center",
-                       br(),
-                       br(),
-                       h4(strong("Fielder Catch Depth"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
-                       h4("(Right Side View)", align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 18px; line-height: 1; color:black;"),
-                       plotOutput('CatchDepth4', height = 300, width = 400)
-                )
+              # Total Catcher Outs Gained
+              column(2, align = "center",
+                     br(),
+                     h4(strong("Total Outs"), align = "center", style = "font-family: 'Ariel Narrow', sans-serif; font-weight: 10; font-size: 35px; line-height: 1; color:dimgrey;"),
+                     div(style = "height:13px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Catcher", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalCatcher4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Infielder Outs Gained
+              column(2, align = "center",
+                     br(),
+                     div(style = "height:68px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thin",
+                         h4("Infielder", align = "center", style = "font-family: 'Times', serif; font-weight: 10; font-size: 30px; line-height: 1; color:gray5;"),
+                         br(),
+                         h5(textOutput("OutputTotalFielder4"), align = "center", style = "font-family: 'Times', serif; font-weight: 700; font-size: 30px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
               )
-      ),
-      # 2nd tab - Animation
-      tabItem(tabName = "animation",
-              fluidRow(
-                # Filler
-                column(1),
-                # Play Animation
-                column(4, align = "center",
-                       h4(strong("Play Animation"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
-                       br(),
-                       h4(textOutput('stolenBaseText'), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 20px; line-height: 1; color:dimgrey;"),
-                       br(),
-                       imageOutput('animate', height = 500, width = 500)
-                ),
-                # Filler
-                column(1),
-                # Displayed Percentages for that play
-                column(3, 
-                       h4(strong("SB Probabilities"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
-                       br(),
-                       br(),
-                       div(style = "border-style: solid; border-color: black; border-width: thick",
-                           h4(strong("Pitch Release"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("pitch_release_model1"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("Catcher Retrieval"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("catcher_retrieval_model2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("Catcher Throw"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("catcher_throw_model3"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("Middle Infielder Retrieval"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("middle_infielder_retrieval_model4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("End Result (0 or 100)"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("end_result"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
-                       )
-                ),
-                column(3,
-                       h4(strong("Total Outs Earned"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
-                       div(style = "height:151px"),
-                       div(style = "border-style: solid; border-color: black; border-width: thick",
-                           h4(strong("Pitcher Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("pitcher_outs2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("Catcher Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("catcher_outs34"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                           br(),
-                           h4(strong("Infielder Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
-                           h5(textOutput("infielder_outs4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
-                       )
-                ),
-                # Disclaimers
-                column(12,
-                       br(),
-                       h5("**Disclaimer: Some plays may take consider time to load", align = "left", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 15px; line-height: 1; color:black;"),
-                       br(),
-                       h5("**Disclaimer: Some plays have missing data points and will jump around or end early", align = "left", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 15px; line-height: 1; color:black;")
-                )
-              )  
-      )
+            ),
+            fluidRow(
+              # The field with a movable player's lead
+              column(4, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Distance to 2B"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     plotOutput('EditLead4', height = 300, width = 300)
+              ),
+              # Catch Location Plot
+              column(4, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Fielder Catch Location"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     h4("(Home Plate View)", align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 18px; line-height: 1; color:black;"),
+                     plotOutput('EditBallLocation4', height = 300, width = 400)
+              ),
+              # Catch Depth Plot
+              column(4, align = "center",
+                     br(),
+                     br(),
+                     h4(strong("Fielder Catch Depth"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 30px; line-height: 1; color:black;"),
+                     h4("(Right Side View)", align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 18px; line-height: 1; color:black;"),
+                     plotOutput('CatchDepth4', height = 300, width = 400)
+              )
+            )
+    ),
+    
+    # 2nd tab - Animated Plays
+    tabItem(tabName = "animation",
+            fluidRow(
+              # Filler for symmetry
+              column(1),
+              # Play Animation text setup and image output
+              column(4, align = "center",
+                     h4(strong("Play Animation"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
+                     br(),
+                     h4(textOutput('stolenBaseText'), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 20px; line-height: 1; color:dimgrey;"),
+                     br(),
+                     imageOutput('animate', height = 500, width = 500)
+              ),
+              # Filler
+              column(1),
+              # Displayed Percentages for that play
+              column(3, 
+                     h4(strong("SB Probabilities"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
+                     br(),
+                     br(),
+                     # Black outline for visual purposes
+                     div(style = "border-style: solid; border-color: black; border-width: thick",
+                         h4(strong("Pitch Release"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("pitch_release_model1"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("Catcher Retrieval"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("catcher_retrieval_model2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("Catcher Throw"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("catcher_throw_model3"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("Middle Infielder Retrieval"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("middle_infielder_retrieval_model4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("End Result (0 or 100)"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("end_result"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;")
+                     )
+              ),
+              # Total Outs Earned by Player
+              column(3,
+                     h4(strong("Total Outs Earned"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 40px; line-height: 1; color:black;"),
+                     div(style = "height:151px"),
+                     div(style = "border-style: solid; border-color: black; border-width: thick",
+                         h4(strong("Pitcher Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("pitcher_outs2"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("Catcher Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("catcher_outs34"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                         br(),
+                         h4(strong("Infielder Outs"), align = "center", style = "font-family: 'Times', serif; font-weight: 500px; font-size: 25px; line-height: 1; color:dimgrey;"),
+                         h5(textOutput("infielder_outs4"), align = "center", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 35px; text-shadow: 1px 1px 1px #aaa; line-height: 1; color:blue;"),
+                     )
+              ),
+              # Disclaimers
+              column(12,
+                     br(),
+                     h5("**Disclaimer: Some plays may take consider time to load", align = "left", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 15px; line-height: 1; color:black;"),
+                     br(),
+                     h5("**Disclaimer: Some plays have missing data points and will jump around or end early", align = "left", style = "font-family: 'Times', serif; font-weight: 250px; font-size: 15px; line-height: 1; color:black;")
+              )
+            )  
     )
   )
+)
 
   
 ui <- dashboardPage(header, sidebar, body)  
@@ -747,7 +763,7 @@ server <- function(input, output, session) {
   }, deleteFile = FALSE)
 
   
-  # Update Choices for the Animated Play based on SB
+  # Update Choices for the Animated Play based on SB input
   observe({
     x <- as.numeric(input$SB)
     new_options <- filter(locations, SB == x)
@@ -760,7 +776,7 @@ server <- function(input, output, session) {
   })
   
   
-  # Update Choices for the Animated Play based on SB and Game
+  # Update Choices for the Animated Play based on SB and Game inputs
   observe({
     x <- input$game
     y <- as.numeric(input$SB)
@@ -794,20 +810,20 @@ server <- function(input, output, session) {
   output$stolenBaseText = renderText(paste0("Stolen Base: ", stolenBase()))
   
   
-  # Various maxSpeed inputs
+  # Creating text for maxSpeed input
   output$maxSpeed1 = renderText(paste0(input$maxSpeed1, " ft/sec"))
   
   
-  # Various exchange inputs
+  # Creating text for various exchange inputs
   output$exchange3 = renderText(paste0(input$exchange3, " sec"))
   output$exchange4 = renderText(paste0(input$exchange3, " sec"))
   
   
-  # Various timeOfThrow inputs
+  # Creating text for timeOfThrow input
   output$timeOfThrow4 = renderText(paste0(input$timeOfThrow4, " sec"))
   
   
-  # Various timetoPlate inputs
+  # Creating text for timetoPlate input
   output$timeToPlate2 = renderText(paste0(input$timeToPlate2, " sec"))
   
   
@@ -817,10 +833,11 @@ server <- function(input, output, session) {
     # 1 for intercept 
     
     model1["inputs"] = c(1, input$maxSpeed1)
-    
+
+    # Multiplying model coefficients by inputs
     new_table <- model1 %>%
       mutate(product = model1[,2] * inputs)
-    
+
     sum_products <- sum(new_table$product)
     
     # Log Odds
@@ -836,7 +853,7 @@ server <- function(input, output, session) {
     prob
   })
   
-  # Creating text for 1st model
+  # Creating text for 1st model probability
   output$modelOutput1 = renderText(paste0(model1calc(), "%"))
   
   
@@ -851,7 +868,8 @@ server <- function(input, output, session) {
     # Order:  Intercept, timetoPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z
     
     model2["inputs"] = c(1, 0, input$leadoff2, 0, 0, input$x_coordinate2, 0, input$y_coordinate2)
-    
+
+    # Multiplying model coefficients by inputs
     new_table <- model2 %>%
       mutate(product = estimate * inputs)
     
@@ -870,16 +888,15 @@ server <- function(input, output, session) {
     prob
   })
   
-  # Creating text for 2nd model
+  # Creating text for 2nd model probability
   output$modelOutput2 = renderText(paste0(model2calc(), "%"))
   
-  
-  
+  # Calculating outs gained/lost for 2nd model
   model2Pitcher = reactive({
     prob <- round((model1calc()/100 - model2calc()/100), digits = 4)
   })
   
-  # Creating text for 2nd model - pitcher
+  # Creating text for 2nd model - pitcher outs gained/lost
   output$modelOutput2Pitcher = renderText(paste0(model2Pitcher()))
   
   output$modelOutput2Pitcher1 = renderText(paste0(model2Pitcher()))
@@ -899,7 +916,8 @@ server <- function(input, output, session) {
     # Order:  Intercept, exchange, timeOfThrow, timetoPlate, rDist2B, maxSpeed, ball_x, ball_y, ball_z
     
     model3["inputs"] = c(1, 1000 * input$exchange3, 1000 * input$timeOfThrow4, 0, input$rDist3, 0, input$x_coordinate3, 0, 0)
-    
+
+    # Multiplying model coefficients by inputs
     new_table <- model3 %>%
       mutate(product = estimate * inputs)
     
@@ -918,16 +936,15 @@ server <- function(input, output, session) {
     prob
   })
   
-  # Creating text for 3rd model
+  # Creating text for 3rd model probability
   output$modelOutput3 = renderText(paste0(model3calc(), "%"))
   
-  
-  
+  # Calculating outs gained/lost for 3rd model
   model3Catcher = reactive({
     prob <- round((model2calc()/100 - model3calc()/100), digits = 4)
   })
   
-  # Creating text for 2nd model - pitcher
+  # Creating text for 3rd model - catcher outs gained/lost
   output$modelOutput3Catcher = renderText(paste0(model3Catcher()))
   
   
@@ -941,10 +958,11 @@ server <- function(input, output, session) {
     
     # Order:  Intercept, exchange, timeOfThrow, timetoPlate, rDist2B, maxSpeed, ball_x, ball_y, ball_z
     
-    # + 127.28125 on catch depth for second base
+    # + 127.28125 on catch depth for second base to account for coordinate offsets
     
     model4["inputs"] = c(1, 1000 * input$exchange3, 1000 * input$timeOfThrow4, 1000 * input$timeToPlate2, input$rDist4, input$x_coordinate4, input$depth4 + 127.28125, input$y_coordinate4)
-    
+
+    # Multiplying model coefficients by inputs
     new_table <- model4 %>%
       mutate(product = estimate * inputs)
     
@@ -963,33 +981,32 @@ server <- function(input, output, session) {
     prob
   })
   
-  # Creating text for 4th model
+  # Creating text for 4th model probability
   output$modelOutput4 = renderText(paste0(model4calc(), "%"))
   
-  
-  
+  # Calculating outs gained/lost for 4th model
   model4Catcher = reactive({
     prob <- round((model3calc()/100 - model4calc()/100), digits = 4)
   })
   
-  # Creating text for 2nd model - pitcher
+  # Creating text for 4th model - catcher outs gained/lost
   output$modelOutput4Catcher = renderText(paste0(model4Catcher()))
   
   
-  
-  
+  # Calculating outs gained/lost for catchers in total
+  # Total = 3rd model outs + 4th model outs (Since catcher have two models to consider outs gained/lost)
   TotalCatcher = reactive({
     prob <- round(model4Catcher() + model3Catcher(), digits = 4)
   })
   
-  # Creating text for 2nd model - pitcher
+  # Creating text for Total catcher outs gained/lost
   output$OutputTotalCatcher1 = renderText(paste0(TotalCatcher()))
   output$OutputTotalCatcher2 = renderText(paste0(TotalCatcher()))
   output$OutputTotalCatcher3 = renderText(paste0(TotalCatcher()))
   output$OutputTotalCatcher4 = renderText(paste0(TotalCatcher()))
   
   
-  # Middle Infielder Outs based on SB4
+  # Middle Infielder outs gained/lost based on 0/1 - 4th model
   TotalFielder = reactive({
     
     if (input$SB4 == TRUE){
@@ -1002,18 +1019,20 @@ server <- function(input, output, session) {
     prob
   })
   
-  # Creating text for 2nd model - pitcher
+  # Creating text for infielder outs gained/lost
   output$modelOutput4Infielder = renderText(paste0(TotalFielder()))
   
-  # Creating text for 4th model - infielder
+  # Creating text for total infielder outs gained/lost
   output$OutputTotalFielder1 = renderText(paste0(TotalFielder()))
   output$OutputTotalFielder2 = renderText(paste0(TotalFielder()))
   output$OutputTotalFielder3 = renderText(paste0(TotalFielder()))
   output$OutputTotalFielder4 = renderText(paste0(TotalFielder()))
   
   
+
+
   
-  # For the changing strike zone in 2nd model
+  # For the changing inputted strike zone in 2nd model
   ball_location2 = reactive({
     
     ball_location2 <- data.frame(input$x_coordinate2, input$y_coordinate2)
@@ -1028,7 +1047,6 @@ server <- function(input, output, session) {
     
     # dimensions for home plate
     df <- data.frame(x = c(-0.85, -1, 0, 1, 0.85), y = c(0, -.2, -.45, -.2, 0))
-    
     
     ggplot(ball_location2(), aes(x = x, y = y)) +
       geom_polygon(df, mapping=aes(x = x, y = y), fill="gray97", color = "gray75") +
@@ -1049,13 +1067,12 @@ server <- function(input, output, session) {
       xlim(-3.5, 3.5) +
       ylim(-1,5) +
       theme_void()
-      #theme(panel.border = element_rect(colour = "black", fill=NA, size=3))
     
   }, bg = "#ECF0F5")
   
   
   
-  # For the changing throw location in 3rd model
+  # For the changing inputted throw location in 3rd model
   ball_location3 = reactive({
     
     ball_location3 <- data.frame(input$x_coordinate3, input$y_coordinate3)
@@ -1070,7 +1087,6 @@ server <- function(input, output, session) {
     
     # dimensions for home plate
     df <- data.frame(x = c(-0.85, -1, 0, 1, 0.85), y = c(0, -.2, -.45, -.2, 0))
-    
     
     ggplot(ball_location3(), aes(x = x, y = y)) +
       geom_polygon(df, mapping=aes(x = x, y = y), fill="gray97", color = "gray75") +
@@ -1096,7 +1112,7 @@ server <- function(input, output, session) {
   
   
   
-  # For the changing catch location in 4th model
+  # For the changing inputted catch location in 4th model
   ball_location4 = reactive({
     
     # Dividing by certain scalars to make graph seem more proportional
@@ -1123,7 +1139,7 @@ server <- function(input, output, session) {
     # dimension for the infield 
     dfinfield <- data.frame(x = c(-5.5,5.5,5.5,-5.5), y = c(-1,-1,5,5))
     
-    # dimension parabole for infield grass
+    # dimension parabola for infield grass
     f1 <- function (x) 1/150*(x^2) - 0.75
     numbers <- seq(-2.5,2.5,0.01)
     dfinfieldgrass <- data.frame(x = c(numbers, 5.5, -5.5), y = c(f1(numbers), -1, -1))
@@ -1154,7 +1170,7 @@ server <- function(input, output, session) {
   
   
   
-  # For the changing catch depth in 4th model
+  # For the changing inputted catch depth in 4th model
   ball_location_depth4 = reactive({
     
     ball_location_depth4 <- data.frame(input$depth4/1.25, input$y_coordinate4/1.5)
@@ -1210,13 +1226,15 @@ server <- function(input, output, session) {
   
   
 
-  # For the changing runner 2B distance in 2nd model
+  # For the changing inputted runner 2B distance in 2nd model
   runner_location2 = reactive({
-    
+
+    # x and y coordinates for 1st base
     x = 63.64
     y = 63.64
     runner = input$leadoff2
-    
+
+    # Finding distance between 1st base and runner
     diff <- sqrt(runner^2 / 2)
     
     runner_location2 <- data.frame(x - diff, y + diff)
@@ -1225,14 +1243,17 @@ server <- function(input, output, session) {
     
   })
   
+
   
-  # For the changing runner 2B distance in 3rd model
+  # For the changing inputted runner 2B distance in 3rd model
   runner_location3 = reactive({
-    
+
+    # x and y coordinates for 2nd base
     x = 0
     y = 127.3
     runner = input$rDist3
-    
+
+    # Finding distance between 2nd base and runner
     diff <- sqrt(runner^2 / 2)
     
     runner_location3 <- data.frame(x + diff, y - diff)
@@ -1241,14 +1262,17 @@ server <- function(input, output, session) {
     
   })
   
+
   
-  # For the changing runner 2B distance in 4th model
+  # For the changing inputted runner 2B distance in 4th model
   runner_location4 = reactive({
-    
+
+    # x and y coordinates for 2nd base
     x = 0
     y = 127.3
     runner = input$rDist4
-    
+
+    # Finding distance between 2nd base and runner
     diff <- sqrt(runner^2 / 2)
     
     runner_location4 <- data.frame(x + diff, y - diff)
@@ -1257,30 +1281,36 @@ server <- function(input, output, session) {
     
   })
   
+
   
   # Baseball field with runner in 2nd model
   output$EditLead2 = renderPlot({
-    
+
+    # Using sportyR package to generate a baseball field with runner location 
     geom_baseball(league = "MLB", rotation = 0, display_range = "infield") +
       geom_point(runner_location2(), mapping = aes(x = x, y = y), size = 5, color = "red") + 
       labs(caption = "Field generated by sportyR")
     
   }, bg = "#ECF0F5")
   
+
   
   # Baseball field with runner in 3rd model
   output$EditLead3 = renderPlot({
-    
+
+    # Using sportyR package to generate a baseball field with runner location 
     geom_baseball(league = "MLB", rotation = 0, display_range = "infield") +
       geom_point(runner_location3(), mapping = aes(x = x, y = y), size = 5, color = "red") + 
       labs(caption = "Field generated by sportyR")
     
   }, bg = "#ECF0F5")
   
+
   
   # Baseball field with runner in 4th model
   output$EditLead4 = renderPlot({
-    
+
+    # Using sportyR package to generate a baseball field with runner location 
     geom_baseball(league = "MLB", rotation = 0, display_range = "infield") +
       geom_point(runner_location4(), mapping = aes(x = x, y = y), size = 5, color = "red") + 
       labs(caption = "Field generated by sportyR")
@@ -1289,7 +1319,7 @@ server <- function(input, output, session) {
   
   
   
-  # The chosen play to animate
+  # The chosen play to animate given inputs
   play = reactive({
     
     locations %>%
@@ -1301,13 +1331,14 @@ server <- function(input, output, session) {
   
   output$animate = renderImage({
     
-    # Will prevent an error from showing until animation has loaded
+    # Will prevent an error from showing until animation has fully loaded
     validate(
       need(nrow(play()) != 0, message = 'Loading Animation')
     )
     
     outfile <- tempfile(fileext='.gif')
-    
+
+    # Generating the field with sportyR, and then plotting the baseball, runner, and 4 fielders involved in play
     p <- geom_baseball(league = "MLB", rotation = 0, display_range = "infield") +
       geom_point(play(), mapping = aes(x = ball_position_x, y = ball_position_y), size = 2, color = "white") + 
       geom_point(play(), mapping = aes(x = fP_x, y = fP_y), size = 4, color = 'red') + 
@@ -1333,11 +1364,10 @@ server <- function(input, output, session) {
   
   
   
-  
-  # The pitch release for the chosen play to animate
+ # The pitch release probability for the chosen play to animate
  pitch_release_model1calc = reactive({
     
-    # Obtaining specific moment
+    # Obtaining the specific moment where the pitch release happened
     time <- key_moments %>%
       filter(game_str == play()$game_str & play_id == play()$play_id) %>%
       filter(playerAct == 'P' & event == 'pitch') %>%
@@ -1345,7 +1375,7 @@ server <- function(input, output, session) {
       na.omit() %>%
       head(1)
     
-    # If data is missing for that point
+    # If data is missing for that point - Display that
     if(nrow(time) == 0){
       return ("Missing Data")
     }
@@ -1355,7 +1385,8 @@ server <- function(input, output, session) {
     # 1 for intercept 
     
     model1["inputs"] = c(1, time$maxSpeed)
-    
+
+    # Multiplying model coefficients by values at specific instant
     new_table <- model1 %>%
       mutate(product = model1[,2] * inputs)
     
@@ -1387,12 +1418,13 @@ server <- function(input, output, session) {
     if (pitch_release_model1calc() == "Missing Data"){
       return ("Missing Data")
     }
+    
     paste0(pitch_release_model1calc(), "%")
   })
   
   
   
-  # The catcher retrieval for the chosen play to animate
+  # The catcher retrieval probability for the chosen play to animate
   catcher_retrieval_model2calc = reactive({
     
     # Obtaining specific moment (and the first occurrence)
@@ -1403,7 +1435,7 @@ server <- function(input, output, session) {
       na.omit() %>%
       head(1)
     
-    # If data is missing for that point
+    # If data is missing for that point - Display that
     if(nrow(time) == 0){
       return ("Missing Data")
     }
@@ -1418,7 +1450,8 @@ server <- function(input, output, session) {
     # Order:  Intercept, timetoPlate, leadoff, rDist2B, maxSpeed, ball_x, ball_y, ball_z 
     
     model2["inputs"] = c(1, 0, time$leadoff, 0, 0, time$ball_x, 0, time$ball_z)
-    
+
+    # Multiplying model coefficients by values at specific instant
     new_table <- model2 %>%
       mutate(product = estimate * inputs)
     
@@ -1450,8 +1483,10 @@ server <- function(input, output, session) {
     if (catcher_retrieval_model2calc() == "Missing Data"){
       return ("Missing Data")
     }
+    
     paste0(catcher_retrieval_model2calc(), "%")
   })
+
   
   # Pitcher Outs Calculation
   output$pitcher_outs2 <- reactive({
@@ -1464,12 +1499,13 @@ server <- function(input, output, session) {
     if (catcher_retrieval_model2calc() == "Missing Data"){
       return ("--")
     }
+    
     round(pitch_release_model1calc()/100 - catcher_retrieval_model2calc()/100, digits = 2)
   })
   
   
   
-  # The catcher throw for the chosen play to animate
+  # The catcher throw probability for the chosen play to animate
   catcher_throw_model3calc = reactive({
     
     # Obtaining specific moment (and the first occurrence)
@@ -1480,12 +1516,12 @@ server <- function(input, output, session) {
       na.omit() %>%
       head(1)
     
-    # If data is missing for that point
+    # If data is missing for that point - Display that
     if(nrow(time) == 0){
       return ("Missing Data")
     }
     
-    # Now applying model2 to the information
+    # Now applying model3 to the information
     
     
     # 1 for intercept 
@@ -1495,7 +1531,8 @@ server <- function(input, output, session) {
     # Order:  Intercept, exchange, timeOfThrow, timetoPlate, rDist2B, maxSpeed, ball_x, ball_y, ball_z
     
     model3["inputs"] = c(1, time$exchange, time$timeOfThrow, 0, time$rDist2B, 0, time$ball_x, 0, 0)
-    
+
+    # Multiplying model coefficients by values at specific instant
     new_table <- model3 %>%
       mutate(product = estimate * inputs)
     
@@ -1527,14 +1564,13 @@ server <- function(input, output, session) {
     if (catcher_throw_model3calc() == "Missing Data"){
       return ("Missing Data")
     }
+    
     paste0(catcher_throw_model3calc(), "%")
   })
   
   
   
-  
-  
-  # The middle infielder retrieval for the chosen play to animate
+  # The middle infielder retrieval probability for the chosen play to animate
   middle_infielder_retrieval_model4calc = reactive({
     
     # Obtaining specific moment (and the first occurrence)
@@ -1545,12 +1581,12 @@ server <- function(input, output, session) {
       na.omit() %>%
       head(1)
     
-    # If data is missing for that point
+    # If data is missing for that point - Display that
     if(nrow(time) == 0){
       return ("Missing Data")
     }
     
-    # Now applying model2 to the information
+    # Now applying model4 to the information
     
     
     # 1 for intercept 
@@ -1560,7 +1596,8 @@ server <- function(input, output, session) {
     # Order:  Intercept, exchange, timeOfThrow, timetoPlate, rDist2B, maxSpeed, ball_x, ball_y, ball_z
     
     model4["inputs"] = c(1, time$exchange, time$timeOfThrow, time$timeToPlate, time$rDist2B, time$ball_x, time$ball_y, time$ball_z)
-    
+
+    # Multiplying model coefficients by values at specific instant
     new_table <- model4 %>%
       mutate(product = estimate * inputs)
     
@@ -1594,6 +1631,7 @@ server <- function(input, output, session) {
     }
     paste0(middle_infielder_retrieval_model4calc(), "%")
   })
+
   
   # Catcher Outs Calculation
   output$catcher_outs34 <- reactive({
@@ -1606,6 +1644,7 @@ server <- function(input, output, session) {
     if ((middle_infielder_retrieval_model4calc() == "Missing Data") | catcher_retrieval_model2calc() == "Missing Data"){
       return ("--")
     }
+    
     round(catcher_retrieval_model2calc()/100 - middle_infielder_retrieval_model4calc()/100, digits = 2)
   })
   
@@ -1632,7 +1671,6 @@ server <- function(input, output, session) {
   })
   
   
-  
   output$end_result = reactive({
     
     # Will prevent an error from showing until input has loaded
@@ -1653,7 +1691,6 @@ server <- function(input, output, session) {
   session$onSessionEnded(function() {
     stopApp()
   })
-  
   
   
 }
